@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from agents.order_tool import check_order_status
 from governance.cache import cached_answer
+from rag.generate import SUBQUERY_FLOOR
 
 TOOL_LOG: list[dict] = []  # audit trail: which tool ran with which arguments
 
@@ -31,7 +32,8 @@ class RagLookupTool(BaseTool):
         r = cached_answer(query)
         return json.dumps({"kind": "policy", "answer": r["answer"], "grounded": r["grounded"],
                            "sources": r["sources"], "top_similarity": r["top_similarity"],
-                           "context": [c["text"] for c in r["chunks"] if c["similarity"] >= 0.32]})
+                           "unanswered": r["unanswered"],
+                           "context": r["used"] + [c["text"] for c in r["chunks"] if c["similarity"] >= SUBQUERY_FLOOR]})
 
 
 class CheckOrderStatusTool(BaseTool):

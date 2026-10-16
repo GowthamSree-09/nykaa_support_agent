@@ -60,10 +60,12 @@ def delete_document(doc_id: str) -> None:
         get_collection(strategy).delete(where={"doc_id": doc_id})
 
 
-def search(query: str, strategy: str = "sentence", k: int = 3) -> list[dict]:
-    """Return top-k chunks: [{chunk_id, doc_id, text, similarity}] (best first)."""
+def search(query: str, strategy: str = "sentence", k: int = 3, doc_id: str | None = None) -> list[dict]:
+    """Return top-k chunks: [{chunk_id, doc_id, text, similarity}] (best first).
+    doc_id restricts the search to ONE knowledge-base document (used for topic hints)."""
     col = get_collection(strategy)
-    res = col.query(query_embeddings=embed([query]), n_results=min(k, col.count()))
+    where = {"doc_id": doc_id} if doc_id else None
+    res = col.query(query_embeddings=embed([query]), n_results=min(k, col.count()), where=where)
     return [
         {"chunk_id": i, "doc_id": m["doc_id"], "text": t, "similarity": round(1 - d, 4)}
         for i, m, t, d in zip(res["ids"][0], res["metadatas"][0], res["documents"][0], res["distances"][0])

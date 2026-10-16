@@ -16,12 +16,15 @@ orders that would be escalated: ['ORD-1023', 'ORD-1025', 'ORD-1037']
 ==============================================================================
 TASK 7 - CrewAI crew via .kickoff(): RAG tool on a policy query, lookup tool on an order query
 ==============================================================================
-Q: How many days do I have to return a lipstick?
-  tools invoked: [('rag_lookup', {'query': 'How many days do I have to return a lipstick?'})]
-  answer: Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken. Home products can be returned within 14 days of delivery.
+Q: What is the return policy for beauty products?
+  tools invoked: [('rag_lookup', {'query': 'What is the return policy for beauty products?'})]
+  answer: Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.
 Q: Where is my order ORD-1023?
-  tools invoked: [('rag_lookup', {'query': 'Where is my order ORD-1023?'}), ('check_order_status', {'record_id': 'ORD-1023'})]
+  tools invoked: [('check_order_status', {'record_id': 'ORD-1023'})]
   answer: Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead.
+Q: Can I cancel ORD-1023 and when would I get a refund?
+  tools invoked: [('rag_lookup', {'query': 'Can I cancel and when would I get a refund?'}), ('check_order_status', {'record_id': 'ORD-1023'})]
+  answer: Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead. Once the order is Shipped, it cannot be cancelled, but the customer can refuse delivery or start a return after it arrives. A bank refund takes 5 to 7 working days after the returned item passes quality checks.
 
 ==============================================================================
 TASK 8 - session memory (LangChain RunnableWithMessageHistory)
@@ -32,7 +35,7 @@ TASK 8 - session memory (LangChain RunnableWithMessageHistory)
   bot : Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead.
   user: Can I cancel it?
   resolved: Can I cancel it? (order ORD-1023)
-  bot : Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead. An order can be cancelled for free while its status is Placed. Once the order is Shipped, it cannot be cancelled, but the customer can refuse delivery or start a return after it arrives.
+  bot : Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead. Once the order is Shipped, it cannot be cancelled, but the customer can refuse delivery or start a return after it arrives. An order can be cancelled for free while its status is Placed.
 -- conversation B (brand-new session, same follow-up question)
   user: Can I cancel it?
   resolved: Can I cancel it?
@@ -58,13 +61,16 @@ TASK 10 - guardrails firing
 PII masking   : 'My phone is [PHONE_MASKED], card ending [CARD_LAST4_MASKED]. Where is ORD-1023?'  fields=['card', 'phone']
 Injection     : Sorry, I can't help with that request. | guardrail = prompt_injection
 Groundedness  : unsupported sentence flagged -> ['Returns include free lifetime insurance.']
+  contradiction -> [('Beauty products cannot be returned within 7 days of delivery.', 'negation differs from context')]
+  contradiction -> [('Beauty products can be returned within 30 days of delivery.', 'number not in context')]
+  contradiction -> [('Beauty products can be returned even if the seal is broken.', 'contradicts context')]
 Groundedness refusal in pipeline: guardrail=groundedness answer=I don't know based on our support knowledge base. Let me connect you to a human agent.
 
 ==============================================================================
 TASK 11 + 12 - FastAPI (/ask, /add-document, WebSocket) and JSON-Lines log
 ==============================================================================
-POST /ask -> 200 {"trace_id": "6e9f693d5d07457a82e059075a20effc", "answer": "Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.", "grounded": true, "sources": ["return_window", "reverse_pickup"], "order_id": null, "order_status": null,
-POST /add-document -> 200 {'trace_id': '462bc123c8314ffab05e9de1145965ea', 'doc_id': 'demo_gift', 'chunks_indexed': {'fixed': 1, 'sentence': 2}}
+POST /ask -> 200 {"trace_id": "e7cdfd9719f84bccb8f7c4bd0e21188d", "answer": "Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.", "grounded": true, "sources": ["return_window"], "order_id": null, "order_status": null, "escalation_score
+POST /add-document -> 200 {'trace_id': 'da6bf79a16014b0d994444904eca2607', 'doc_id': 'demo_gift', 'chunks_indexed': {'fixed': 1, 'sentence': 2}}
 POST /ask (empty question) -> 422 (Pydantic validation)
 WS turn 1 -> Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escala
 WS turn 2 (memory) -> order_id = ORD-1023
@@ -72,20 +78,21 @@ client disconnected mid-conversation; server still alive: {'status': 'ok', 'mock
 WS other client -> Electronics carry a 12 month brand warranty that covers manufacturing defects on
 
 log file lines (JSON Lines):
-  {"timestamp": "2026-10-16T16:19:49.757015+00:00", "trace_id": "6e9f693d5d07457a82e059075a20effc", "endpoint": "/ask", "request_text": "My phone is [PHONE_MASKED]. Can I return a lipstick?", "duration_ms": 186.81, "status": 200, "session_id": "api1", "pii_masked": ["phone"], "guardrail": null, "grounded": true, "answer_chars": 92}
-  {"timestamp": "2026-10-16T16:19:50.255914+00:00", "trace_id": "462bc123c8314ffab05e9de1145965ea", "endpoint": "/add-document", "request_text": "Gift wrapping costs 50 INR per order. It is available for all categories.", "duration_ms": 497.59, "status": 200, "doc_id": "demo_gift"}
-  {"timestamp": "2026-10-16T16:19:50.806476+00:00", "trace_id": "509c47dd92f54753af47a7b7e75e142f", "endpoint": "/ws/chat", "request_text": "Where is my order ORD-1023?", "duration_ms": 213.47, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 148}
-  {"timestamp": "2026-10-16T16:19:51.044611+00:00", "trace_id": "9e615d8192fd47e48861cf65f9a68dfe", "endpoint": "/ws/chat", "request_text": "Can I cancel it?", "duration_ms": 231.62, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 335}
-  {"timestamp": "2026-10-16T16:19:51.046611+00:00", "trace_id": "120fdadd4d594bfcb93e1be69fe68eaf", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.03, "status": "client_disconnected", "session_id": "wsA"}
-  {"timestamp": "2026-10-16T16:19:51.272364+00:00", "trace_id": "7e67859052a74b0dab20590151c80356", "endpoint": "/ws/chat", "request_text": "What warranty do electronics have?", "duration_ms": 219.5, "status": 200, "session_id": "wsB", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 83}
-  {"timestamp": "2026-10-16T16:19:51.274798+00:00", "trace_id": "2ee65251ca4847a185ade4dcdcd205fc", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.03, "status": "client_disconnected", "session_id": "wsB"}
+  {"timestamp": "2026-10-16T18:59:41.394276+00:00", "trace_id": "e7cdfd9719f84bccb8f7c4bd0e21188d", "endpoint": "/ask", "request_text": "My phone is [PHONE_MASKED]. Can I return a lipstick?", "duration_ms": 209.11, "status": 200, "session_id": "api1", "pii_masked": ["phone"], "guardrail": null, "grounded": true, "answer_chars": 92}
+  {"timestamp": "2026-10-16T18:59:41.769158+00:00", "trace_id": "da6bf79a16014b0d994444904eca2607", "endpoint": "/add-document", "request_text": "Gift wrapping costs 50 INR per order. It is available for all categories.", "duration_ms": 373.13, "status": 200, "doc_id": "demo_gift"}
+  {"timestamp": "2026-10-16T18:59:42.401188+00:00", "trace_id": "515e3b11ebbf493aae87fe6516218b8a", "endpoint": "/ws/chat", "request_text": "Where is my order ORD-1023?", "duration_ms": 116.63, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 148}
+  {"timestamp": "2026-10-16T18:59:42.603217+00:00", "trace_id": "edd4ae6ae1fc41ad8b11d392033923f1", "endpoint": "/ws/chat", "request_text": "Can I cancel it?", "duration_ms": 188.85, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 335}
+  {"timestamp": "2026-10-16T18:59:42.603217+00:00", "trace_id": "d8f2b82743194846ae0dcad77d145bbb", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.02, "status": "client_disconnected", "session_id": "wsA"}
+  {"timestamp": "2026-10-16T18:59:42.781215+00:00", "trace_id": "1f35e0289f814b82b5f0149deb1ec893", "endpoint": "/ws/chat", "request_text": "What warranty do electronics have?", "duration_ms": 172.96, "status": 200, "session_id": "wsB", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 83}
+  {"timestamp": "2026-10-16T18:59:42.783292+00:00", "trace_id": "4fa9a3012c2242d1b49a6c4a5afb2c43", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.02, "status": "client_disconnected", "session_id": "wsB"}
 raw phone '9876543210' on disk? False
 
 ==============================================================================
 TASK 14 - AutoGen review (RoundRobinGroupChat, max_turns=2, StructuredMessage[Verdict])
 ==============================================================================
-Case 1 (clean draft)    : approved=True final_answer='Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.' reason='Every sentence of the draft is supported by the retrieved context.'
-Case 2 (injected claim) : approved=False final_answer='Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.' reason='Removed 1 unsupported claim(s): All returns also include free lifetime insurance and a 500 INR bonus.'
+Case 1 (clean draft)    : approved=True final_answer='Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.' reason='Draft is grounded, relevant to the question, safe and complete.'
+Case 2 (injected claim) : approved=False final_answer='Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.' reason='Removed flagged sentence(s) -> unsupported: All returns also include free lifetime insurance and a 500 INR bonus.'
+Case 3 (irrelevant home sentence, grounded but off-topic): approved=False final_answer='Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.' reason='Removed flagged sentence(s) -> irrelevant: Home products can be returned within 14 days of delivery.'
 
 ==============================================================================
 TASK 15 - governance: least autonomy, risk class, runtime budget
@@ -97,13 +104,27 @@ Risk level: MEDIUM (customer-support tickets). See README for the justification.
 normal request budget : {'estimated_tokens': 607, 'estimated_cost_usd': 0.000304}
 oversized request     : Request rejected: estimated 1800 tokens ($0.0009) exceeds the budget of 1000 tokens ($0.0005).
 pipeline result       : Your request is too large to process. Request rejected: estimated 1800 tokens ($0.0009) ex | crew run? False
+governance audit events recorded this run: ['access_denied', 'budget_rejected', 'cache_cleared', 'groundedness_refusal', 'prompt_injection_blocked']
 
 ==============================================================================
 TASK 16 - response cache
 ==============================================================================
-call 1: cache_hit=False  LLM calls so far=1  time=29.82 ms
-call 2: cache_hit=True  LLM calls so far=1  time=0.03 ms  (same answer: True)
+call 1: cache_hit=False  LLM calls so far=1  time=35.21 ms
+call 2: cache_hit=True  LLM calls so far=1  time=0.02 ms  (same answer: True)
 cache stats: hits=1 misses=1
+
+==============================================================================
+STRESS-DEFECT FIXES - product nouns and vague follow-ups
+==============================================================================
+1. 'How do I return my earphones?' -> top-1 0.5563 (threshold 0.44) -> Electronics have a 10 day return window and must come with the original box and accessories.
+2a. no context      : Who do I contact if it fails?
+      -> Could you tell me which item or order you are asking about, so I can find the right policy or contact?
+2b. same message    : How long is the warranty on electronics and who do I contact if it fails?
+      -> Electronics carry a 12 month brand warranty that covers manufacturing defects only. Level 1 is the support agent, who must resolve a case within 24 hours. Level 3 is the support manager, who handles c
+2c. after an earphones question: resolved = 'Who do I contact if my earphones fails?'
+      -> Level 1 is the support agent, who must resolve a case within 24 hours. Level 3 is the support manager, who handles cases older than 72 hours, repeated delivery delays, and legal threats.
+2d. fresh session (nothing to resolve) -> Could you tell me which item or order you are asking about, so I can find the right policy or contact?
+2e. junk with contact words -> I don't know based on our support knowledge base. Let me connect you to a human agent.
 
 ==============================================================================
 NETWORK GUARD

@@ -38,25 +38,41 @@ def _sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
 
 
-def grounded_answer(question: str, context_chunks: list[str], max_sentences: int = 2) -> str:
-    """Extractive answer: copy the context sentences that best overlap the question words."""
+MARGIN = 0.10  # a second sentence must score within this distance of the best one
+
+
+def select_sentences(question: str, scored: list[tuple[str, str, float]], max_sentences: int = 2,
+                     margin: float = MARGIN) -> list[tuple[str, str]]:
+    """Pick the sentences that answer ONE question. scored = [(sentence, doc_id, similarity), ...].
+
+    1. drop sentences that are only about product categories the customer did not ask about,
+    2. take the highest-similarity sentence (the anchor),
+    3. add more sentences ONLY from the anchor's own document and only if they score within
+       `margin` of the anchor - so unrelated policies are never appended.
+    Returns [(sentence, doc_id)].
+    """
+    from rag.relevance import category_compatible  # local import: avoids a circular import
+
+    candidates = [t for t in scored if category_compatible(question, t[0])]
+    if not candidates:
+        return []
+    ranked = sorted(candidates, key=lambda t: -t[2])
+    anchor_sentence, anchor_doc, anchor_score = ranked[0]
+    picked = [(anchor_sentence, anchor_doc)]
+    for sentence, doc, score in ranked[1:]:
+        if len(picked) >= max_sentences:
+            break
+        if doc == anchor_doc and score >= anchor_score - margin:
+            picked.append((sentence, doc))
+    return picked
+
+
+def grounded_answer(parts: list[tuple[str, list[tuple[str, str, float]]]]) -> list[tuple[str, str]]:
+    """One mock-LLM call. parts = [(sub_question, scored_sentences), ...] -> [(sentence, doc_id)] used."""
     CALLS["count"] += 1
-    q = tokens(question)
-    scored = []
-    for chunk in context_chunks:
-        for s in _sentences(chunk):
-            overlap = len(q & tokens(s))
-            if overlap:
-                scored.append((overlap, s))
-    seen, picked = set(), []
-    ranked = sorted(scored, key=lambda x: -x[0])
-    best = ranked[0][0] if ranked else 0
-    for overlap, s in ranked:
-        if overlap < max(1, 0.6 * best):  # drop sentences much less relevant than the best one
-            break
-        if s not in seen:
-            seen.add(s)
-            picked.append(s)
-        if len(picked) == max_sentences:
-            break
-    return " ".join(picked) if picked else context_chunks[0] if context_chunks else ""
+    used: list[tuple[str, str]] = []
+    for question, scored in parts:
+        for item in select_sentences(question, scored):
+            if item not in used:
+                used.append(item)
+    return used

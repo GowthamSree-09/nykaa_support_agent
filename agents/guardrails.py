@@ -65,13 +65,63 @@ def _sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
 
 
-def groundedness_check(answer: str, support_texts: list[str], min_support: float = 0.6) -> tuple[bool, list[str]]:
-    """Each answer sentence must have >= min_support of its content words present in the support text.
-    Returns (all_supported, unsupported_sentences)."""
-    support = set().union(*(tokens(t) for t in support_texts)) if support_texts else set()
-    unsupported = []
-    for s in _sentences(answer):
-        words = tokens(s)
-        if words and len(words & support) / len(words) < min_support:
-            unsupported.append(s)
-    return (not unsupported, unsupported)
+# ---- groundedness -------------------------------------------------------------------------------
+# A sentence is "supported" only if ONE context sentence (a) covers at least `min_support` of its content
+# words AND (b) agrees with it on numbers, (c) on negation, (d) on contradictory word pairs, and
+# (e) contains every risky absolute the answer uses ("guaranteed", "tomorrow" ...).
+# Limitations: this is deterministic text matching, not understanding. It misses subtle contradictions
+# that use words outside the lists below, and it can reject a correct answer that merges two context
+# sentences into one. Real deployments would add an LLM/NLI judge on top.
+NEGATION_RE = re.compile(r"\b(?:not|no|never|cannot|nor|without|none)\b|n't\b", re.I)
+NUMBER_RE = re.compile(r"\d+(?:\.\d+)?")
+NUMBER_WORDS = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7",
+                "eight": "8", "nine": "9", "ten": "10", "twelve": "12", "fifteen": "15", "thirty": "30"}
+ANTONYMS = [("broken", "unbroken"), ("worn", "unworn"), ("allowed", "prohibited"), ("before", "after"),
+            ("increase", "decrease"), ("refundable", "nonrefundable"), ("opened", "sealed"),
+            ("approve", "reject"), ("accept", "refuse"), ("free", "paid")]
+RISKY_TERMS = {"guarantee", "guaranteed", "always", "never", "instant", "instantly", "immediately", "tomorrow",
+               "today", "lifetime", "unlimited", "free", "bonus", "insurance", "cashback", "refundable"}
+MIN_SUPPORT = 0.6
+
+
+def _numbers(text: str) -> set[str]:
+    words = [NUMBER_WORDS.get(w, w) for w in re.findall(r"[a-z0-9.]+", text.lower())]
+    return set(NUMBER_RE.findall(" ".join(words)))
+
+
+def _plain_words(text: str) -> set[str]:
+    return set(re.findall(r"[a-z]+", text.lower()))
+
+
+def sentence_problem(sentence: str, support_sentences: list[str], min_support: float = MIN_SUPPORT) -> str | None:
+    """None if supported, otherwise a short reason."""
+    words = tokens(sentence)
+    if not words:
+        return None
+    reasons = []
+    for t in support_sentences:
+        coverage = len(words & tokens(t)) / len(words)
+        if coverage < min_support:
+            continue
+        if not _numbers(sentence) <= _numbers(t):
+            reasons.append("number not in context"); continue
+        if bool(NEGATION_RE.search(sentence)) != bool(NEGATION_RE.search(t)):
+            reasons.append("negation differs from context"); continue
+        sw, tw = _plain_words(sentence), _plain_words(t)
+        if any((a in sw and b in tw and a not in tw) or (b in sw and a in tw and b not in tw) for a, b in ANTONYMS):
+            reasons.append("contradicts context"); continue
+        if (RISKY_TERMS & sw) - tw:
+            reasons.append("unsupported absolute claim"); continue
+        return None
+    return reasons[0] if reasons else "not found in context"
+
+
+def groundedness_problems(answer: str, support_texts: list[str]) -> list[tuple[str, str]]:
+    support_sentences = [s for t in support_texts for s in _sentences(t)]
+    return [(s, r) for s in _sentences(answer) if (r := sentence_problem(s, support_sentences))]
+
+
+def groundedness_check(answer: str, support_texts: list[str], min_support: float = MIN_SUPPORT) -> tuple[bool, list[str]]:
+    """Returns (all_supported, unsupported_sentences)."""
+    problems = groundedness_problems(answer, support_texts)
+    return (not problems, [s for s, _ in problems])

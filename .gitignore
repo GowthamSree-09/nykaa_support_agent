@@ -1,8 +1,28 @@
+# Python / environment
 .venv/
+venv/
 __pycache__/
 *.pyc
+*.egg-info/
 .pytest_cache/
+
+# Secrets and credentials (this project needs none: MOCK_LLM uses zero API keys)
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+credentials*.json
+secrets*.json
+
+# Generated at runtime: local vector database, request/governance logs, test logs
 chroma_db/
 logs/
 tests/_test_requests.jsonl
-*.egg-info/
+*.sqlite
+*.sqlite3
+*.db
+
+# Editor files
+.vscode/
+.idea/

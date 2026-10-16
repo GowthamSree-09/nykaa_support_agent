@@ -17,7 +17,9 @@ from typing import Any
 import llm  # noqa: F401  (telemetry off)
 from crewai.llms.base_llm import BaseLLM
 
-from agents.schemas import SupportResponse, order_sentences
+from agents.routing import classify_intent, needs_policy, policy_query
+from agents.schemas import (ASK_ORDER_ID, CLARIFY_QUESTION, PARTIAL_ANSWER, SupportResponse, not_found_sentence,
+                            order_sentences)
 from rag.generate import FALLBACK
 
 ORDER_ID_RE = re.compile(r"ORD-\d+", re.I)
@@ -51,22 +53,37 @@ def _json_objects(text: str) -> list[dict]:
     return found
 
 
-def compose(context_text: str) -> SupportResponse:
+def compose(context_text: str, question: str) -> SupportResponse:
+    """Merge the earlier agents' JSON into one answer, guided by what the customer actually asked."""
+    intent = classify_intent(question)
     objs = _json_objects(context_text)
-    policy = next((o for o in objs if o.get("kind") == "policy"), None)
-    order = next((o for o in objs if o.get("kind") == "order" and o.get("found")), None)
+    policy = next((o for o in objs if o.get("kind") == "policy" and not o.get("skipped")), None)
+    order_objs = [o for o in objs if o.get("kind") == "order"]
+    order = next((o for o in order_objs if o.get("found")), None)
+    missing = next((o for o in order_objs if o.get("found") is False and o.get("record_id")), None)
+
     parts, sources, grounded = [], [], True
     if order:
         parts.extend(order_sentences(order["record_id"], order["status"], order["order_value_inr"],
                                      order["escalation_score"], order["recommend_escalation"]))
-    if policy and policy["grounded"]:
-        parts.append(policy["answer"])
-        sources = policy["sources"]
-    elif policy and not order:
-        parts.append(FALLBACK)
-        grounded = False
-    if not parts:
-        parts.append("I could not find an order with that id. Please check the order number.")
+    elif missing:
+        parts.append(not_found_sentence(missing["record_id"]))
+    elif intent == "order_id_missing":
+        parts.append(ASK_ORDER_ID)
+    elif intent == "clarify":
+        parts.append(CLARIFY_QUESTION)  # ambiguous: ask instead of guessing
+
+    if intent in ("policy", "mixed"):
+        if policy and policy["grounded"]:
+            parts.append(policy["answer"])
+            sources = policy["sources"]
+            if policy.get("unanswered"):  # part of the question had no supporting policy text
+                parts.append(PARTIAL_ANSWER)
+        elif parts:  # an order part exists but nothing supports the policy part
+            parts.append(PARTIAL_ANSWER)
+        else:
+            parts.append(FALLBACK)
+            grounded = False
     return SupportResponse(
         answer=" ".join(parts), grounded=grounded, sources=sources,
         order_id=order["record_id"] if order else None,
@@ -116,7 +133,11 @@ class MockCrewLLM(BaseLLM):
                             "Final Answer: {\"kind\": \"order\", \"found\": false, \"note\": \"no order id given\"}")
                 args = {"record_id": m.group(0).upper()}
             elif "query" in fields:
-                args = {"query": question}
+                if not needs_policy(question):  # order-only question: nothing to look up in the policy KB
+                    return ("Thought: this is an order-only question, no policy search is needed\n"
+                            "Final Answer: {\"kind\": \"policy\", \"skipped\": true, \"grounded\": false, "
+                            "\"answer\": \"\", \"sources\": []}")
+                args = {"query": policy_query(question)}
             else:
                 return "Thought: I cannot use my tool for this\nFinal Answer: {}"
             return (f"Thought: I should use my tool\nAction: {tool.name}\n"
@@ -124,4 +145,4 @@ class MockCrewLLM(BaseLLM):
 
         # Step 4: Composer (no tools) merges the earlier agents' outputs.
         context_text = "\n".join(m["content"] for m in msgs if m["role"] == "user")
-        return compose(context_text).model_dump_json()
+        return compose(context_text, question).model_dump_json()

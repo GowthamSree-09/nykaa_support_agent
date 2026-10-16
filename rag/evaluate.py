@@ -1,24 +1,39 @@
-"""Task 5 - document-level precision/recall for both chunking strategies (top-k chunks, deduped to docs)."""
-from rag.queries import IN_SCOPE
+"""Task 5 - document-level precision/recall for both chunking strategies.
+
+Chunks are mapped to their parent documents and de-duplicated BEFORE scoring.
+Two retrieval modes are compared:
+  single : top-3 chunks for the whole question (the original method)
+  multi  : the question is split into sub-questions (rag/relevance.py), top-K chunks for each,
+           and the parent documents of all of them are merged (multi-query retrieval)
+"""
+from rag.queries import IN_SCOPE, MULTI_TOPIC
+from rag.relevance import split_subqueries
 from rag.store import search
 
 K = 3
+K_PER_SUBQUERY = 2
 
 
-def score(query: str, relevant: set[str], strategy: str, k: int = K) -> dict:
-    chunks = search(query, strategy, k)
-    retrieved_docs = sorted({c["doc_id"] for c in chunks})  # map chunk -> parent doc, dedup
-    hits = sorted(set(retrieved_docs) & relevant)
-    precision = len(hits) / len(retrieved_docs)
-    recall = len(hits) / len(relevant)
-    return {"retrieved": retrieved_docs, "hits": hits, "precision": precision, "recall": recall,
-            "n_chunks": len(chunks)}
+def retrieved_docs(query: str, strategy: str, mode: str) -> tuple[list[str], int]:
+    if mode == "single":
+        chunks = search(query, strategy, K)
+    else:
+        chunks = [c for sub in split_subqueries(query) for c in search(sub, strategy, K_PER_SUBQUERY)]
+    return sorted({c["doc_id"] for c in chunks}), len(chunks)
 
 
-def run() -> dict:
+def score(query: str, relevant: set[str], strategy: str, mode: str = "single") -> dict:
+    docs, n_chunks = retrieved_docs(query, strategy, mode)
+    hits = sorted(set(docs) & relevant)
+    return {"retrieved": docs, "hits": hits, "precision": len(hits) / len(docs),
+            "recall": len(hits) / len(relevant), "n_chunks": n_chunks}
+
+
+def run(queries=None, mode: str = "single") -> dict:
+    queries = queries if queries is not None else IN_SCOPE
     results = {}
     for strategy in ("fixed", "sentence"):
-        rows = [(q, rel, score(q, rel, strategy)) for q, rel in IN_SCOPE]
+        rows = [(q, rel, score(q, rel, strategy, mode)) for q, rel in queries]
         results[strategy] = {
             "rows": rows,
             "avg_precision": sum(r["precision"] for _, _, r in rows) / len(rows),
@@ -27,10 +42,9 @@ def run() -> dict:
     return results
 
 
-if __name__ == "__main__":
-    res = run()
+def _print(res: dict, title: str) -> None:
     for strategy, data in res.items():
-        print(f"\n===== {strategy} collection (top-{K} chunks, deduped to parent documents) =====")
+        print(f"\n===== {title} | {strategy} collection (chunks deduped to parent documents) =====")
         for q, rel, r in data["rows"]:
             print(f"Q: {q}\n   relevant={sorted(rel)}  retrieved_docs={r['retrieved']}  hits={r['hits']}")
             print(f"   precision = {len(r['hits'])}/{len(r['retrieved'])} = {r['precision']:.3f}"
@@ -39,3 +53,11 @@ if __name__ == "__main__":
         print(f"AVERAGE over {n} queries: precision = {sum(r['precision'] for *_, r in data['rows']):.3f}/{n}"
               f" = {data['avg_precision']:.3f} | recall = {sum(r['recall'] for *_, r in data['rows']):.3f}/{n}"
               f" = {data['avg_recall']:.3f}")
+
+
+if __name__ == "__main__":
+    for title, queries, mode in [("A. SINGLE-QUERY, 7 required queries (original method)", IN_SCOPE, "single"),
+                                 ("B. MULTI-QUERY, same 7 queries", IN_SCOPE, "multi"),
+                                 ("C. SINGLE-QUERY, 2 extra multi-topic queries", MULTI_TOPIC, "single"),
+                                 ("D. MULTI-QUERY, same 2 multi-topic queries", MULTI_TOPIC, "multi")]:
+        _print(run(queries, mode), title)

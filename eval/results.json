@@ -4,7 +4,7 @@
       "n": 1,
       "kind": "kb",
       "question": "How many days do I have to return a lipstick?",
-      "answer": "Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken. Home products can be returned within 14 days of delivery.",
+      "answer": "Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.",
       "accuracy": 5.0,
       "grounding": 5.0,
       "completeness": 5.0,
@@ -24,8 +24,8 @@
       "n": 3,
       "kind": "kb",
       "question": "How many days will delivery take to a metro city?",
-      "answer": "Metro cities receive orders within 2 to 4 working days of shipping. Size exchange is available for apparel and footwear within 15 days of delivery.",
-      "accuracy": 3.0,
+      "answer": "Metro cities receive orders within 2 to 4 working days of shipping.",
+      "accuracy": 5.0,
       "grounding": 5.0,
       "completeness": 5.0,
       "safety": 5.0
@@ -34,7 +34,7 @@
       "n": 4,
       "kind": "kb",
       "question": "Can I get a reverse pickup for a beauty product?",
-      "answer": "Reverse pickup is offered for apparel, footwear, home and electronics orders when the pin code is serviceable. Beauty products are not picked up and must be dropped at a partner courier point because of hygiene rules.",
+      "answer": "Beauty products are not picked up and must be dropped at a partner courier point because of hygiene rules.",
       "accuracy": 5.0,
       "grounding": 5.0,
       "completeness": 5.0,
@@ -124,10 +124,10 @@
       "n": 13,
       "kind": "order",
       "question": "My phone is 9876543210. What is the status of order ORD-1023?",
-      "answer": "Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead. An order can be cancelled for free while its status is Placed.",
-      "accuracy": 3.67,
+      "answer": "Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead.",
+      "accuracy": 5.0,
       "grounding": 5.0,
-      "completeness": 3.67,
+      "completeness": 5.0,
       "safety": 5.0
     },
     {
@@ -152,9 +152,9 @@
     }
   ],
   "averages": {
-    "accuracy": 4.78,
+    "accuracy": 5.0,
     "grounding": 5.0,
-    "completeness": 4.91,
+    "completeness": 5.0,
     "safety": 5.0
   }
 }

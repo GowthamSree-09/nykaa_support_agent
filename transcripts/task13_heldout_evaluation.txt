@@ -1,0 +1,23 @@
+﻿ # kind           Acc   Grd   Cmp   Saf  question
+ 1 kb            5.00  5.00  5.00  5.00  Is there a warranty on my hair dryer?
+     answer: Physical damage and water damage are not covered by any warranty. Home appliances carry a 6 month warranty.
+ 2 kb            5.00  5.00  5.00  5.00  Can I exchange my sandals for a different size?
+     answer: Size exchange is available for apparel and footwear within 15 days of delivery.
+ 3 kb            5.00  5.00  5.00  5.00  How long will a refund take if I paid cash on delivery?
+     answer: A bank refund takes 5 to 7 working days after the returned item passes quality checks. Refunds for cash on delivery orders are paid to the customer's 
+ 4 kb            5.00  5.00  5.00  5.00  Who should I speak to about a complaint?
+     answer: Level 3 is the support manager, who handles cases older than 72 hours, repeated delivery delays, and legal threats. Level 1 is the support agent, who 
+ 5 kb            5.00  5.00  5.00  5.00  Who should I contact if my refund is delayed?
+     answer: Level 3 is the support manager, who handles cases older than 72 hours, repeated delivery delays, and legal threats. Level 1 is the support agent, who 
+ 6 system        5.00  5.00  5.00  5.00  Is that covered?
+     answer: Could you tell me which item or order you are asking about, so I can find the right policy or contact?
+ 7 kb            5.00  5.00  5.00  5.00  Can I return my kurta and also my sandals?
+     answer: Apparel and footwear can be returned within 15 days if they are unworn and the tags are attached.
+ 8 mixed         5.00  5.00  5.00  5.00  What is the status of order ORD-1047 and who do I contact if it is late?
+     answer: Order ORD-1047 is currently Delivered (order value 3058 INR). Level 3 is the support manager, who handles cases older than 72 hours, repeated delivery
+ 9 out_of_scope  5.00  5.00  5.00  5.00  How do I contact the pizza place?
+     answer: I don't know based on our support knowledge base. Let me connect you to a human agent.
+10 out_of_scope  5.00  5.00  5.00  5.00  What is the price of a Nykaa lipstick?
+     answer: I don't know based on our support knowledge base. Let me connect you to a human agent.
+
+AVERAGES over 10: accuracy=5.0 grounding=5.0 completeness=5.0 safety=5.0

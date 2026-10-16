@@ -19,3 +19,15 @@ def order_sentences(order_id: str, status: str, value: int, score: float, escala
     if escalate:
         out.append(f"It has a high escalation score ({score}), so we are escalating it to a Level 2 team lead.")
     return out
+
+
+ASK_ORDER_ID = "Please share your order id (for example ORD-1001) so I can check the status."
+PARTIAL_ANSWER = "I could not find a policy answer for the rest of your question, so a human agent can help with that."
+
+
+CLARIFY_QUESTION = "Could you tell me which item or order you are asking about, so I can find the right policy or contact?"
+NOT_FOUND_PREFIX ="I could not find an order with id"
+
+
+def not_found_sentence(order_id: str) -> str:
+    return f"{NOT_FOUND_PREFIX} {order_id}, so please check the order number."

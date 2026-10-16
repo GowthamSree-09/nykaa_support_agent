@@ -1,28 +1,47 @@
 ﻿
 == fixed collection ==
-  in_scope      0.6105  How many days do I have to return a lipstick?
-  in_scope      0.7149  When will my cash on delivery refund reach my bank account?
-  in_scope      0.6601  Can I cancel my order after it has been shipped?
-  in_scope      0.6082  My parcel arrived broken, how do I make a claim?
-  in_scope      0.5774  How do I exchange my shoes for a bigger size?
-  in_scope      0.5031  How long is the warranty on my earphones?
-  in_scope      0.5015  My parcel is very late, how long should delivery take and who do I escalate to?
-  out_of_scope  0.1192  Who won the cricket world cup?
-  out_of_scope  0.0895  Give me a recipe for chocolate cake.
-  out_of_scope  0.1154  Explain how quantum computers work.
-  out_of_scope  0.0692  What is the capital of France?
-  lowest in-scope = 0.5015 | highest out-of-scope = 0.1192 | midpoint = 0.3103
+  in_scope        0.6105  How many days do I have to return a lipstick?
+  in_scope        0.7149  When will my cash on delivery refund reach my bank account?
+  in_scope        0.6601  Can I cancel my order after it has been shipped?
+  in_scope        0.6082  My parcel arrived broken, how do I make a claim?
+  in_scope        0.5774  How do I exchange my shoes for a bigger size?
+  in_scope        0.5031  How long is the warranty on my earphones?
+  in_scope        0.5015  My parcel is very late, how long should delivery take and who do I escalate to?
+  out_of_scope    0.1192  Who won the cricket world cup?
+  out_of_scope    0.0895  Give me a recipe for chocolate cake.
+  out_of_scope    0.1154  Explain how quantum computers work.
+  out_of_scope    0.0692  What is the capital of France?
+  near_domain_oos 0.2854  How do I return my car to the dealership?
+  near_domain_oos 0.1626  What is the weather in Mumbai today?
+  near_domain_oos 0.1048  Can you recommend a good movie to watch?
+  near_domain_oos 0.3084  How do I order a pizza online?
+  lowest in-scope = 0.5015 | highest out-of-scope = 0.3084 | midpoint = 0.4049
 
 == sentence collection ==
-  in_scope      0.6537  How many days do I have to return a lipstick?
-  in_scope      0.7106  When will my cash on delivery refund reach my bank account?
-  in_scope      0.7699  Can I cancel my order after it has been shipped?
-  in_scope      0.5237  My parcel arrived broken, how do I make a claim?
-  in_scope      0.5933  How do I exchange my shoes for a bigger size?
-  in_scope      0.5079  How long is the warranty on my earphones?
-  in_scope      0.5996  My parcel is very late, how long should delivery take and who do I escalate to?
-  out_of_scope  0.1322  Who won the cricket world cup?
-  out_of_scope  0.0525  Give me a recipe for chocolate cake.
-  out_of_scope  0.1329  Explain how quantum computers work.
-  out_of_scope  0.1203  What is the capital of France?
-  lowest in-scope = 0.5079 | highest out-of-scope = 0.1329 | midpoint = 0.3204
+  in_scope        0.6537  How many days do I have to return a lipstick?
+  in_scope        0.7106  When will my cash on delivery refund reach my bank account?
+  in_scope        0.7699  Can I cancel my order after it has been shipped?
+  in_scope        0.5237  My parcel arrived broken, how do I make a claim?
+  in_scope        0.5933  How do I exchange my shoes for a bigger size?
+  in_scope        0.5079  How long is the warranty on my earphones?
+  in_scope        0.5996  My parcel is very late, how long should delivery take and who do I escalate to?
+  out_of_scope    0.1322  Who won the cricket world cup?
+  out_of_scope    0.0525  Give me a recipe for chocolate cake.
+  out_of_scope    0.1329  Explain how quantum computers work.
+  out_of_scope    0.1203  What is the capital of France?
+  near_domain_oos 0.2981  How do I return my car to the dealership?
+  near_domain_oos 0.2005  What is the weather in Mumbai today?
+  near_domain_oos 0.0904  Can you recommend a good movie to watch?
+  near_domain_oos 0.3682  How do I order a pizza online?
+  lowest in-scope = 0.5079 | highest out-of-scope = 0.3682 | midpoint = 0.4381
+
+== product glossary evidence (sentence collection, threshold 0.44) ==
+  0.3316 -> 0.5563  [return_window]  ACCEPTED (before: rejected)  How do I return my earphones?
+  0.3508 -> 0.5575  [return_window]  ACCEPTED (before: rejected)  How can I return my headphones?
+  0.2507 -> 0.5563  [return_window]  ACCEPTED (before: rejected)  How do I return my trimmer?
+  0.3490 -> 0.6871  [return_window]  ACCEPTED (before: rejected)  How do I return my kurta?
+  0.5768 -> 0.6566  [return_window]  ACCEPTED (before: accepted)  How do I return my sneakers?
+  0.3307 -> 0.7101  [return_window]  ACCEPTED (before: rejected)  How do I return my cushion?
+  0.4171 -> 0.7580  [return_window]  ACCEPTED (before: rejected)  Can I return my shampoo?
+  0.4784 -> 0.7275  [return_window]  ACCEPTED (before: accepted)  How do I return my mascara?
+  out-of-scope questions changed by the glossary: 0 of 8; highest out-of-scope top-1 after normalization = 0.3682

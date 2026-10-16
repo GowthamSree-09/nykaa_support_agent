@@ -5,11 +5,13 @@ Run:  uvicorn api.main:app --reload      (all LLM work is MOCK_LLM: no API key, 
 import time
 
 import llm  # noqa: F401  (telemetry off)
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from agents import service
+from agents.memory import reset_session
 from api.logging_utils import log_request, new_trace_id
 from kb.documents import KB_DOCUMENTS  # noqa: F401
 from rag import store
@@ -93,6 +95,20 @@ def add_document(req: AddDocumentRequest):
     return AddDocumentResponse(trace_id=trace_id, **out)
 
 
+@app.exception_handler(Exception)
+async def unexpected_error(request: Request, exc: Exception):
+    """Never leak internals or the customer's text: log only the trace id and the error type."""
+    trace_id = new_trace_id()
+    log_request(trace_id, request.url.path, "", time.perf_counter(), status=500, error_type=type(exc).__name__)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error", "trace_id": trace_id})
+
+
+@app.delete("/sessions/{session_id}")
+def delete_session(session_id: str):
+    """Reset one conversation's memory (the next question starts with no history)."""
+    return {"session_id": session_id, "cleared": reset_session(session_id)}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "mock_llm": True}
@@ -105,7 +121,12 @@ async def chat(ws: WebSocket, session_id: str = "ws-default"):
         while True:
             question = await ws.receive_text()
             trace_id, started = new_trace_id(), time.perf_counter()
-            result = await run_in_threadpool(service.handle_request, question, session_id)
+            try:
+                result = await run_in_threadpool(service.handle_request, question, session_id)
+            except Exception as exc:  # one bad message must not kill the conversation or the server
+                log_request(trace_id, "/ws/chat", "", started, status=500, error_type=type(exc).__name__)
+                await ws.send_json({"trace_id": trace_id, "error": "Internal server error"})
+                continue
             _log_ask(trace_id, "/ws/chat", question, started, result,
                      status=413 if result.get("budget_rejected") else 200)
             await ws.send_json(_to_response(trace_id, result).model_dump())

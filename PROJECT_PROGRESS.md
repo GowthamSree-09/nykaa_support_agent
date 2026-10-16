@@ -1,42 +1,43 @@
 # PROJECT_PROGRESS — Nykaa Domain Support Agent (CrewAI)
 
-Source of truth: `Final_Capstone.pdf`. Everything runs under `MOCK_LLM`, zero API keys.
-Env: Windows, PowerShell, Python 3.12 venv at `.venv`.
-Commands: `.\.venv\Scripts\python.exe -m pytest -q` (36 pass) · `-m demos.run_demos` · `-m eval.judge_eval` · `-m uvicorn api.main:app`
+Source of truth: `Final_Capstone.pdf`. Everything runs under `MOCK_LLM`, zero API keys, zero network.
+Env: Windows, PowerShell, Python 3.12 venv at `.venv`. Repo: https://github.com/GowthamSree-09/nykaa_support_agent
+Commands: `.\.venv\Scripts\python.exe -m pytest -q` (157 pass) · `-m demos.run_demos` · `-m eval.judge_eval [--stress|--heldout]` · `-m uvicorn api.main:app`
 
-## Status: Tasks 1-16 implemented, tested, documented (README.md has all evidence)
-| # | Task | Status | Evidence |
-|---|------|--------|----------|
-| 1 | Dataset seed 12, 60 orders, 20.0% delayed | DONE | transcripts/task1_dataset.txt |
-| 2 | KB 12 docs | DONE | tests/test_kb.py |
-| 3 | 2 chunkings, 2 Chroma collections (23 / 48 chunks) | DONE | tests/test_rag.py |
-| 4 | Grounded gen, threshold 0.32 from measured clusters | DONE | transcripts/task4_* |
-| 5 | P/R both collections; sentence wins (P .857 vs .429) | DONE | transcripts/task5_chunking_eval.txt |
-| 6 | check_order_status, score 0.6*delayed+0.4*days/30, threshold 0.83 (median 17d) | DONE | tests/test_order_tool.py |
-| 7 | CrewAI crew (3 agents) via kickoff, MockCrewLLM(BaseLLM) | DONE | transcripts/full_demo.txt |
-| 8 | LangChain session memory | DONE | demo + tests |
-| 9 | SupportResponse Pydantic schema | DONE | |
-| 10 | Guardrails (PII, injection, groundedness) | DONE | |
-| 11 | FastAPI: /ask, /add-document, /health, WS /ws/chat | DONE | tests/test_api_and_eval.py |
-| 12 | JSONL log, trace id, masked | DONE | logs, tests |
-| 13 | 15-query eval, avgs acc 4.78 / grd 5.0 / cmp 4.91 / saf 5.0 | DONE | transcripts/task13_evaluation.txt |
-| 14 | AutoGen RoundRobinGroupChat review (approve + revise) | DONE | |
-| 15 | Least autonomy, Medium risk, budget cap 1000 tokens | DONE | |
-| 16 | Response cache with hit evidence | DONE | |
-Network guard demo: 0 outbound connection attempts.
+## Status
+All 16 tasks implemented and tested (see `REQUIREMENT_AUDIT.md`). Two improvement rounds are DONE locally and NOT committed/pushed (user decides when).
 
-## Key implementation notes
-- autogen-agentchat must be >=0.7 (pip default gave 0.2.x). It pins protobuf 5.29 -> googleapis-common-protos==1.70.0 needed.
-- AutoGen agent names must be identifiers (underscores).
-- CrewAI ReAct: observation arrives inside the latest ASSISTANT message, followed by a user nudge; mock reads assistant messages only.
-- Seed 42 was marginal; seed 12 used (no record edits).
-- Judge was first too lenient (all 5.0); made stricter with on-topic-sentence penalty; generator got crude stemming + relative-overlap cutoff.
+## Round 1 (done)
+Relevance (embedding-scored sentences, category gate, same-document rule, true sources), question routing, multi-query retrieval, threshold 0.44 (calibrated with near-domain junk), stronger groundedness (numbers/negation/antonyms/absolutes, re-check after review), richer AutoGen reviewer, API error handling, governance audit log.
+
+## Round 2 — the two stress defects (done)
+1. "How do I return my earphones?" falsely rejected -> root cause was vocabulary (product nouns score ~0.33, category words ~0.56), not the threshold. Fix: product glossary replaces product noun with category word for retrieval (`rag/relevance.py`); threshold stays 0.44. Evidence in `python -m rag.calibrate`; out-of-scope questions unchanged (max 0.3682).
+2. "Who do I contact if it fails?" -> dangling "it" + fragment retrieval matched "fail" + no answer-type check. Fixes: `clarify` intent (`agents/routing.py`), session topic carry-over (`agents/memory.py`), same-message resolution + topic hint + who-gate (`rag/generate.py`), reviewer answer-type check (`llm/autogen_mock.py`).
+3. Found and fixed on the way: relative "that" wrongly treated as a reference (caught by the 15-query eval: query 12 fell to 1.00); junk sub-question rode along (sub-queries now need 0.44 unless hinted); order-only part of a mixed question searched the KB (found by held-out set).
+
+## Round 3 — COD refund answer and hair-dryer check (done)
+- COD: "How long will a refund take if I paid cash on delivery?" returned the generic COD sentence. Root cause: the picker ranks by similarity + shared words and had no answer-type notion for "how long". Fix: duration questions (how long / how soon / how quickly / how many days...) give +0.12 to sentences that state a duration (`rag/relevance.py` `is_duration_question`/`has_duration`, `rag/generate.py` `DURATION_BOOST`). Bonus, not filter. "when will ..." is deliberately NOT a duration question.
+- Collateral check: 32 snapshot questions (`tests/snapshot_questions.py`) before/after -> exactly 2 changed, both better (COD; "How long are loyalty points valid?"). Snapshot frozen in `tests/answer_snapshot.json`; pre-fix in `tests/answer_snapshot_before_duration_fix.json`.
+- Hair dryer: KB never mentions hair dryers (only Electronics 12 month, Home appliances 6 month). The old "12 month" expectation came from a comment in dataset.py, so the EXPECTATION was corrected (`"12 month|6 month"`, judge supports "|" alternatives); code unchanged.
+- Still wrong (documented, not fixed): "How long does delivery take to remote areas?"; "When will ... refund reach ...?" returns the general sentence.
+
+## Results (actual)
+- Tests: 157 passed (36 original + 57 round 1 + 25 round 2 + 39 round 3).
+- 15 required queries: 5.00 / 5.00 / 5.00 / 5.00 (before all rounds 4.78 / 5.00 / 4.91 / 5.00).
+- Stress set (12): 5.00 x4 (before round 2: 4.42 / 4.67 / 4.50 / 5.00). Tuned on, so not proof of generality.
+- Held-out set (10): first 4.20 / 5.00 / 5.00 / 5.00; after COD fix 4.60; after correcting the hair-dryer expectation 5.00 x4. No longer untuned (its failures were fixed).
+- Precision/recall unchanged: sentence+multi-query P 1.000 R 1.000; sentence single P 0.857 R 0.929; fixed single P 0.429 R 0.929.
+- Network guard: 0 outbound connection attempts.
+
+## Gotchas learned
+- The tool layer collapses double backslashes in shell/heredoc input (regexes got backspace characters). Write regex-containing files with the Write/Edit tools, never via heredoc; check with a `\x08` scan if a regex misbehaves.
+- autogen-agentchat must be >=0.7 (needs googleapis-common-protos==1.70.0 for protobuf 5).
+- CrewAI ReAct: the observation arrives inside the latest ASSISTANT message followed by a user nudge.
 
 ## Known issues
-- Q7 retrieval weak (late parcel -> damaged_item_claim); extra sentences in eval Q3, Q13; grounding is 5.0 by construction.
-- test_add_document_then_retrievable failed once, not reproducible in later clean runs.
-- Names/addresses not masked (out of scope per brief).
+- "How long does delivery take to remote areas?" misses the 10-working-day remote-pin-code sentence; "When will ... refund reach ...?" returns the general COD sentence; hair-dryer answer picks the home-appliance reading without flagging the unclear category.
+- Glossary and topic hints are hand-written; unknown products may still be rejected / clarified.
+- Names/addresses not masked (out of scope per brief). Memory is in-process only.
 
-## Remaining before submission (needs user)
-- Create a PUBLIC GitHub repo and push (NOT done; needs user approval). Folder is not a git repo yet.
-- Optionally re-run the demos on the user's machine and commit transcripts/.
+## Next step
+User reviews, then commits and pushes. Do NOT push without approval.

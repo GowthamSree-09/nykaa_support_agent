@@ -1,0 +1,110 @@
+{
+  "rows": [
+    {
+      "n": 1,
+      "kind": "kb",
+      "question": "Is there a warranty on my hair dryer?",
+      "answer": "Physical damage and water damage are not covered by any warranty. Home appliances carry a 6 month warranty.",
+      "accuracy": 1.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 2,
+      "kind": "kb",
+      "question": "Can I exchange my sandals for a different size?",
+      "answer": "Size exchange is available for apparel and footwear within 15 days of delivery.",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 3,
+      "kind": "kb",
+      "question": "How long will a refund take if I paid cash on delivery?",
+      "answer": "A bank refund takes 5 to 7 working days after the returned item passes quality checks. Refunds for cash on delivery orders are paid to the customer's bank account or as store credit.",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 4,
+      "kind": "kb",
+      "question": "Who should I speak to about a complaint?",
+      "answer": "Level 3 is the support manager, who handles cases older than 72 hours, repeated delivery delays, and legal threats. Level 1 is the support agent, who must resolve a case within 24 hours.",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 5,
+      "kind": "kb",
+      "question": "Who should I contact if my refund is delayed?",
+      "answer": "Level 3 is the support manager, who handles cases older than 72 hours, repeated delivery delays, and legal threats. Level 1 is the support agent, who must resolve a case within 24 hours.",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 6,
+      "kind": "system",
+      "question": "Is that covered?",
+      "answer": "Could you tell me which item or order you are asking about, so I can find the right policy or contact?",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 7,
+      "kind": "kb",
+      "question": "Can I return my kurta and also my sandals?",
+      "answer": "Apparel and footwear can be returned within 15 days if they are unworn and the tags are attached.",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 8,
+      "kind": "mixed",
+      "question": "What is the status of order ORD-1047 and who do I contact if it is late?",
+      "answer": "Order ORD-1047 is currently Delivered (order value 3058 INR). Level 3 is the support manager, who handles cases older than 72 hours, repeated delivery delays, and legal threats. Level 1 is the support agent, who must resolve a case within 24 hours.",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 9,
+      "kind": "out_of_scope",
+      "question": "How do I contact the pizza place?",
+      "answer": "I don't know based on our support knowledge base. Let me connect you to a human agent.",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    },
+    {
+      "n": 10,
+      "kind": "out_of_scope",
+      "question": "What is the price of a Nykaa lipstick?",
+      "answer": "I don't know based on our support knowledge base. Let me connect you to a human agent.",
+      "accuracy": 5.0,
+      "grounding": 5.0,
+      "completeness": 5.0,
+      "safety": 5.0
+    }
+  ],
+  "averages": {
+    "accuracy": 4.6,
+    "grounding": 5.0,
+    "completeness": 5.0,
+    "safety": 5.0
+  }
+}
