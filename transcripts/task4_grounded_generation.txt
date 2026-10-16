@@ -1,0 +1,38 @@
+﻿MOCK_LLM grounded generation | threshold = 0.32
+
+Q: How many days do I have to return a lipstick?
+   top1=0.6537 grounded=True sources=['return_window']
+   A: Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken. Home products can be returned within 14 days of delivery.
+
+Q: When will my cash on delivery refund reach my bank account?
+   top1=0.7106 grounded=True sources=['cod_refund', 'order_cancellation']
+   A: Refunds for cash on delivery orders are paid to the customer's bank account or as store credit. Cancelled cash on delivery orders need no refund.
+
+Q: Can I cancel my order after it has been shipped?
+   top1=0.7699 grounded=True sources=['order_cancellation']
+   A: Once the order is Shipped, it cannot be cancelled, but the customer can refuse delivery or start a return after it arrives.
+
+Q: My parcel arrived broken, how do I make a claim?
+   top1=0.5237 grounded=True sources=['damaged_item_claim']
+   A: After the claim is approved, a free replacement or a full refund is given within 5 working days. Claims made after 48 hours go to the quality team for manual review.
+
+Q: How do I exchange my shoes for a bigger size?
+   top1=0.5933 grounded=True sources=['size_exchange']
+   A: Size exchange is available for apparel and footwear within 15 days of delivery. An exchange is only possible when the new size is in stock.
+
+Q: How long is the warranty on my earphones?
+   top1=0.5079 grounded=True sources=['warranty_terms']
+   A: Electronics carry a 12 month brand warranty that covers manufacturing defects only. Apparel, footwear and beauty products have no warranty, but a quality complaint can be raised within 7 days of delivery.
+
+Q: My parcel is very late, how long should delivery take and who do I escalate to?
+   top1=0.5996 grounded=True sources=['damaged_item_claim', 'delivery_sla']
+   A: A damaged or wrong item must be reported within 48 hours of delivery.
+
+Q: Who won the cricket world cup?
+   top1=0.1322 grounded=False sources=[]
+   A: I don't know based on our support knowledge base. Let me connect you to a human agent.
+
+Q: Give me a recipe for chocolate cake.
+   top1=0.0525 grounded=False sources=[]
+   A: I don't know based on our support knowledge base. Let me connect you to a human agent.
+

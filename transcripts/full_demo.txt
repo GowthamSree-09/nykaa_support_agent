@@ -1,0 +1,111 @@
+﻿
+==============================================================================
+TASK 6 - check_order_status + designed escalation score
+==============================================================================
+formula: score = 0.6*delayed_shipment + 0.4*(days_since_created/30)
+dataset days_since_created: median=17.0, min=0, max=30
+threshold = 0.6 + 0.4*(17.0/30) = 0.83  (delayed order at the median age)
+escalation also needs an OPEN order (Placed/Shipped).
+  {'found': True, 'record_id': 'ORD-1023', 'status': 'Shipped', 'order_value_inr': 1188, 'escalation_score': 0.9333, 'recommend_escalation': True}
+  {'found': True, 'record_id': 'ORD-1009', 'status': 'Delivered', 'order_value_inr': 3053, 'escalation_score': 0.9733, 'recommend_escalation': False}
+  {'found': True, 'record_id': 'ORD-1055', 'status': 'Shipped', 'order_value_inr': 5773, 'escalation_score': 0.7333, 'recommend_escalation': False}
+  {'found': True, 'record_id': 'ORD-1001', 'status': 'Delivered', 'order_value_inr': 6029, 'escalation_score': 0.0533, 'recommend_escalation': False}
+  {'found': False, 'record_id': 'ORD-9999', 'error': 'Order not found'}
+orders that would be escalated: ['ORD-1023', 'ORD-1025', 'ORD-1037']
+
+==============================================================================
+TASK 7 - CrewAI crew via .kickoff(): RAG tool on a policy query, lookup tool on an order query
+==============================================================================
+Q: How many days do I have to return a lipstick?
+  tools invoked: [('rag_lookup', {'query': 'How many days do I have to return a lipstick?'})]
+  answer: Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken. Home products can be returned within 14 days of delivery.
+Q: Where is my order ORD-1023?
+  tools invoked: [('rag_lookup', {'query': 'Where is my order ORD-1023?'}), ('check_order_status', {'record_id': 'ORD-1023'})]
+  answer: Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead.
+
+==============================================================================
+TASK 8 - session memory (LangChain RunnableWithMessageHistory)
+==============================================================================
+-- conversation A (same session across turns)
+  user: Where is my order ORD-1023?
+  resolved: Where is my order ORD-1023?
+  bot : Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead.
+  user: Can I cancel it?
+  resolved: Can I cancel it? (order ORD-1023)
+  bot : Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead. An order can be cancelled for free while its status is Placed. Once the order is Shipped, it cannot be cancelled, but the customer can refuse delivery or start a return after it arrives.
+-- conversation B (brand-new session, same follow-up question)
+  user: Can I cancel it?
+  resolved: Can I cancel it?
+  order_id found: None
+
+==============================================================================
+TASK 9 - structured output: every response validated against SupportResponse
+==============================================================================
+{
+  "answer": "Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escalation score (0.9333), so we are escalating it to a Level 2 team lead.",
+  "grounded": true,
+  "sources": [],
+  "order_id": "ORD-1023",
+  "order_status": "Shipped",
+  "order_value_inr": 1188,
+  "escalation_score": 0.9333,
+  "escalate": true
+}
+
+==============================================================================
+TASK 10 - guardrails firing
+==============================================================================
+PII masking   : 'My phone is [PHONE_MASKED], card ending [CARD_LAST4_MASKED]. Where is ORD-1023?'  fields=['card', 'phone']
+Injection     : Sorry, I can't help with that request. | guardrail = prompt_injection
+Groundedness  : unsupported sentence flagged -> ['Returns include free lifetime insurance.']
+Groundedness refusal in pipeline: guardrail=groundedness answer=I don't know based on our support knowledge base. Let me connect you to a human agent.
+
+==============================================================================
+TASK 11 + 12 - FastAPI (/ask, /add-document, WebSocket) and JSON-Lines log
+==============================================================================
+POST /ask -> 200 {"trace_id": "6e9f693d5d07457a82e059075a20effc", "answer": "Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.", "grounded": true, "sources": ["return_window", "reverse_pickup"], "order_id": null, "order_status": null,
+POST /add-document -> 200 {'trace_id': '462bc123c8314ffab05e9de1145965ea', 'doc_id': 'demo_gift', 'chunks_indexed': {'fixed': 1, 'sentence': 2}}
+POST /ask (empty question) -> 422 (Pydantic validation)
+WS turn 1 -> Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escala
+WS turn 2 (memory) -> order_id = ORD-1023
+client disconnected mid-conversation; server still alive: {'status': 'ok', 'mock_llm': True}
+WS other client -> Electronics carry a 12 month brand warranty that covers manufacturing defects on
+
+log file lines (JSON Lines):
+  {"timestamp": "2026-10-16T16:19:49.757015+00:00", "trace_id": "6e9f693d5d07457a82e059075a20effc", "endpoint": "/ask", "request_text": "My phone is [PHONE_MASKED]. Can I return a lipstick?", "duration_ms": 186.81, "status": 200, "session_id": "api1", "pii_masked": ["phone"], "guardrail": null, "grounded": true, "answer_chars": 92}
+  {"timestamp": "2026-10-16T16:19:50.255914+00:00", "trace_id": "462bc123c8314ffab05e9de1145965ea", "endpoint": "/add-document", "request_text": "Gift wrapping costs 50 INR per order. It is available for all categories.", "duration_ms": 497.59, "status": 200, "doc_id": "demo_gift"}
+  {"timestamp": "2026-10-16T16:19:50.806476+00:00", "trace_id": "509c47dd92f54753af47a7b7e75e142f", "endpoint": "/ws/chat", "request_text": "Where is my order ORD-1023?", "duration_ms": 213.47, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 148}
+  {"timestamp": "2026-10-16T16:19:51.044611+00:00", "trace_id": "9e615d8192fd47e48861cf65f9a68dfe", "endpoint": "/ws/chat", "request_text": "Can I cancel it?", "duration_ms": 231.62, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 335}
+  {"timestamp": "2026-10-16T16:19:51.046611+00:00", "trace_id": "120fdadd4d594bfcb93e1be69fe68eaf", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.03, "status": "client_disconnected", "session_id": "wsA"}
+  {"timestamp": "2026-10-16T16:19:51.272364+00:00", "trace_id": "7e67859052a74b0dab20590151c80356", "endpoint": "/ws/chat", "request_text": "What warranty do electronics have?", "duration_ms": 219.5, "status": 200, "session_id": "wsB", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 83}
+  {"timestamp": "2026-10-16T16:19:51.274798+00:00", "trace_id": "2ee65251ca4847a185ade4dcdcd205fc", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.03, "status": "client_disconnected", "session_id": "wsB"}
+raw phone '9876543210' on disk? False
+
+==============================================================================
+TASK 14 - AutoGen review (RoundRobinGroupChat, max_turns=2, StructuredMessage[Verdict])
+==============================================================================
+Case 1 (clean draft)    : approved=True final_answer='Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.' reason='Every sentence of the draft is supported by the retrieved context.'
+Case 2 (injected claim) : approved=False final_answer='Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.' reason='Removed 1 unsupported claim(s): All returns also include free lifetime insurance and a 500 INR bonus.'
+
+==============================================================================
+TASK 15 - governance: least autonomy, risk class, runtime budget
+==============================================================================
+BLOCKED: Least-autonomy violation: 'Policy Retrieval Agent' may not use tool 'check_order_status'
+BLOCKED: Least-autonomy violation: 'Response Composer' may not use tool 'check_order_status'
+agents holding check_order_status: ['Order Lookup Agent']
+Risk level: MEDIUM (customer-support tickets). See README for the justification.
+normal request budget : {'estimated_tokens': 607, 'estimated_cost_usd': 0.000304}
+oversized request     : Request rejected: estimated 1800 tokens ($0.0009) exceeds the budget of 1000 tokens ($0.0005).
+pipeline result       : Your request is too large to process. Request rejected: estimated 1800 tokens ($0.0009) ex | crew run? False
+
+==============================================================================
+TASK 16 - response cache
+==============================================================================
+call 1: cache_hit=False  LLM calls so far=1  time=29.82 ms
+call 2: cache_hit=True  LLM calls so far=1  time=0.03 ms  (same answer: True)
+cache stats: hits=1 misses=1
+
+==============================================================================
+NETWORK GUARD
+==============================================================================
+outbound connection attempts blocked: 0 []

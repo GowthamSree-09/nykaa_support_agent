@@ -1,0 +1,48 @@
+﻿
+===== fixed collection (top-3 chunks, deduped to parent documents) =====
+Q: How many days do I have to return a lipstick?
+   relevant=['return_window']  retrieved_docs=['order_cancellation', 'payment_failure', 'return_window']  hits=['return_window']
+   precision = 1/3 = 0.333 | recall = 1/1 = 1.000
+Q: When will my cash on delivery refund reach my bank account?
+   relevant=['cod_refund']  retrieved_docs=['cod_refund', 'order_cancellation', 'payment_failure']  hits=['cod_refund']
+   precision = 1/3 = 0.333 | recall = 1/1 = 1.000
+Q: Can I cancel my order after it has been shipped?
+   relevant=['order_cancellation']  retrieved_docs=['delivery_sla', 'order_cancellation']  hits=['order_cancellation']
+   precision = 1/2 = 0.500 | recall = 1/1 = 1.000
+Q: My parcel arrived broken, how do I make a claim?
+   relevant=['damaged_item_claim']  retrieved_docs=['cod_refund', 'damaged_item_claim']  hits=['damaged_item_claim']
+   precision = 1/2 = 0.500 | recall = 1/1 = 1.000
+Q: How do I exchange my shoes for a bigger size?
+   relevant=['size_exchange']  retrieved_docs=['reverse_pickup', 'size_exchange']  hits=['size_exchange']
+   precision = 1/2 = 0.500 | recall = 1/1 = 1.000
+Q: How long is the warranty on my earphones?
+   relevant=['warranty_terms']  retrieved_docs=['damaged_item_claim', 'return_window', 'warranty_terms']  hits=['warranty_terms']
+   precision = 1/3 = 0.333 | recall = 1/1 = 1.000
+Q: My parcel is very late, how long should delivery take and who do I escalate to?
+   relevant=['delivery_sla', 'escalation_matrix']  retrieved_docs=['damaged_item_claim', 'delivery_sla']  hits=['delivery_sla']
+   precision = 1/2 = 0.500 | recall = 1/2 = 0.500
+AVERAGE over 7 queries: precision = 3.000/7 = 0.429 | recall = 6.500/7 = 0.929
+
+===== sentence collection (top-3 chunks, deduped to parent documents) =====
+Q: How many days do I have to return a lipstick?
+   relevant=['return_window']  retrieved_docs=['return_window']  hits=['return_window']
+   precision = 1/1 = 1.000 | recall = 1/1 = 1.000
+Q: When will my cash on delivery refund reach my bank account?
+   relevant=['cod_refund']  retrieved_docs=['cod_refund', 'order_cancellation']  hits=['cod_refund']
+   precision = 1/2 = 0.500 | recall = 1/1 = 1.000
+Q: Can I cancel my order after it has been shipped?
+   relevant=['order_cancellation']  retrieved_docs=['order_cancellation']  hits=['order_cancellation']
+   precision = 1/1 = 1.000 | recall = 1/1 = 1.000
+Q: My parcel arrived broken, how do I make a claim?
+   relevant=['damaged_item_claim']  retrieved_docs=['damaged_item_claim']  hits=['damaged_item_claim']
+   precision = 1/1 = 1.000 | recall = 1/1 = 1.000
+Q: How do I exchange my shoes for a bigger size?
+   relevant=['size_exchange']  retrieved_docs=['size_exchange']  hits=['size_exchange']
+   precision = 1/1 = 1.000 | recall = 1/1 = 1.000
+Q: How long is the warranty on my earphones?
+   relevant=['warranty_terms']  retrieved_docs=['warranty_terms']  hits=['warranty_terms']
+   precision = 1/1 = 1.000 | recall = 1/1 = 1.000
+Q: My parcel is very late, how long should delivery take and who do I escalate to?
+   relevant=['delivery_sla', 'escalation_matrix']  retrieved_docs=['damaged_item_claim', 'delivery_sla']  hits=['delivery_sla']
+   precision = 1/2 = 0.500 | recall = 1/2 = 0.500
+AVERAGE over 7 queries: precision = 6.000/7 = 0.857 | recall = 6.500/7 = 0.929

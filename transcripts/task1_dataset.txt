@@ -1,0 +1,10 @@
+﻿seed=12  orders=60
+Count per category: {'Home': 7, 'Beauty': 16, 'Footwear': 14, 'Apparel': 11, 'Electronics': 12}
+Count per status:   {'Delivered': 27, 'Shipped': 12, 'Returned': 6, 'Refunded': 6, 'Placed': 9}
+Delayed shipments: 20.0%
+Value range INR: 205 - 47487
+VALIDATION: PASS
+First 3 records:
+  {'record_id': 'ORD-1001', 'category': 'Home', 'status': 'Delivered', 'order_value_inr': 6029, 'days_since_created': 4, 'delayed_shipment': False}
+  {'record_id': 'ORD-1002', 'category': 'Beauty', 'status': 'Delivered', 'order_value_inr': 2834, 'days_since_created': 25, 'delayed_shipment': False}
+  {'record_id': 'ORD-1003', 'category': 'Beauty', 'status': 'Shipped', 'order_value_inr': 205, 'days_since_created': 21, 'delayed_shipment': False}

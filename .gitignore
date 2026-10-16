@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+chroma_db/
+logs/
+tests/_test_requests.jsonl
+*.egg-info/
