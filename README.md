@@ -13,7 +13,7 @@
 | Outbound network calls during the graded demo run | 0 (network guard, [transcripts/full_demo.txt](transcripts/full_demo.txt)) |
 | Reproducible dataset | seed `12`, 60 orders — see [section 2](#2-dataset-design-choices-task-1) |
 
-This README is organised like a technical report. Every number in it comes from the code in this repository or from a saved transcript; where a design reason is not documented in the code, the text says so.
+This README is organized like a technical report. Every number in it comes from the code in this repository or from a saved transcript; where a design reason is not documented in the code, the text says so.
 
 ## Table of contents
 1. [Project overview](#1-project-overview)
@@ -279,7 +279,7 @@ Each document is a dictionary with three fields: `doc_id` (a short stable id use
 | Chunks over the 12 documents | **23** | **48** (12 documents × 4 sentences) |
 | Collection | `kb_fixed` | `kb_sentence` |
 
-Fixed chunking slides a 250-character window forward 200 characters at a time, so neighbouring chunks share 50 characters. **Why overlap helps:** a window boundary can fall in the middle of a sentence; the shared 50 characters keep that text in both chunks so neither loses its context. **Illustration from the actual `return_window` document (341 characters → 2 fixed chunks, 4 sentence chunks):**
+Fixed chunking slides a 250-character window forward 200 characters at a time, so neighboring chunks share 50 characters. **Why overlap helps:** a window boundary can fall in the middle of a sentence; the shared 50 characters keep that text in both chunks so neither loses its context. **Illustration from the actual `return_window` document (341 characters → 2 fixed chunks, 4 sentence chunks):**
 
 ```
 fixed 0 : "Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.
@@ -411,7 +411,7 @@ The id is upper-cased and trimmed, then looked up in `dataset.ORDERS`.
 ### 7.2 The escalation-score formula (as implemented)
 $$\text{score} = 0.6 \times \text{delayed} + 0.4 \times \frac{\text{days\_since\_created}}{30}$$
 
-where $\text{delayed}\in\{0,1\}$ and the age is clamped to $[0,30]$ and divided by 30 so it is normalised to $[0,1]$.
+where $\text{delayed}\in\{0,1\}$ and the age is clamped to $[0,30]$ and divided by 30 so it is normalized to $[0,1]$.
 
 * **Delayed contribution (0.6):** a delayed shipment is treated as the stronger signal that the customer needs help.
 * **Age contribution (0.4):** the longer the order has existed, the longer the customer has waited.
@@ -557,7 +557,7 @@ The two pitfalls named in the brief are handled and tested: (1) CrewAI's system 
 ### 12.5 The deterministic evaluation judge
 `MockJudge` parses a judge prompt (question, context, answer, expected facts and documents) and applies the rule-based formulas in [section 15](#15-evaluation-task-13).
 
-### 12.6 Telemetry, offline behaviour and how it was tested
+### 12.6 Telemetry, offline behavior and how it was tested
 * **Telemetry disabled:** [llm/__init__.py](llm/__init__.py) sets `CREWAI_DISABLE_TELEMETRY=true`, `OTEL_SDK_DISABLED=true`, `CREWAI_TRACING_ENABLED=false` and `ANONYMIZED_TELEMETRY=False` before `crewai` or `chromadb` is imported; every entry point imports it first. (The brief asks for this to be confirmed in the README: it is.)
 * **Network guard:** `demos/run_demos.py` replaces `socket.connect` and `getaddrinfo` with wrappers that raise (and count) on any non-loopback connection. The last line of the saved transcript is `outbound connection attempts blocked: 0 []` ([full_demo.txt](transcripts/full_demo.txt)).
 * **One-time setup vs offline runtime:** the first run needs internet **once** to download the embedding model (~90 MB) into the Hugging Face cache. `get_model()` first tries `SentenceTransformer(MODEL_NAME, local_files_only=True)` and only falls back to a download if the model is not cached. Afterwards every graded run is offline. This was also exercised in a fresh clone with an empty model cache: after the one-time download, the suite was run with `HF_HUB_OFFLINE=1` and 177 tests passed (checked during final verification; that run's output was not saved as a transcript).
@@ -707,7 +707,7 @@ Before the crew runs, `enforce_budget()` estimates the request: $\text{tokens} =
 **Code:** [governance/cache.py](governance/cache.py) · **Tests:** `test_cache_hit_avoids_llm_call`, `test_cache_holds_only_policy_answers…`, `test_cache_cleared_after_document_added` · **Evidence:** [full_demo.txt](transcripts/full_demo.txt) (Task 16).
 
 * **Key normalization:** the key is `(strategy, normalized query)`, where `normalize()` lower-cases, replaces non-alphanumeric characters by spaces and collapses whitespace. `"Can I cancel?!"` and `"  can i   CANCEL "` share one entry.
-* **Hit behaviour:** a hit returns the stored result immediately — skipping embedding, ChromaDB search and the mock LLM call. A miss runs `answer_question()` once and stores the result.
+* **Hit behavior:** a hit returns the stored result immediately — skipping embedding, ChromaDB search and the mock LLM call. A miss runs `answer_question()` once and stores the result.
 * **Measured evidence (demo):**
 
 | Call | `cache_hit` | LLM calls so far | Time |
