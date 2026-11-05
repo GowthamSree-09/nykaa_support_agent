@@ -23,7 +23,7 @@ from agents.service import handle_request, support_texts
 from agents.schemas import SupportResponse
 from kb.documents import KB_DOCUMENTS
 from llm.autogen_mock import is_system_sentence
-from rag.generate import FALLBACK
+from rag.generate import CATEGORY_CLARIFICATION, FALLBACK
 from rag import store
 
 # (question, expected key facts, expected docs, kind)
@@ -116,7 +116,7 @@ class MockJudge:
             sents = re.split(r"(?<=[.!?])\s+", answer.strip())
             n = max(1, len(sents))
             expected_text = " ".join(d["text"] for d in KB_DOCUMENTS if d["doc_id"] in docs)
-            on_topic = sum(s in expected_text
+            on_topic = sum(s in expected_text or s == CATEGORY_CLARIFICATION  # fixed "confirm the category" sentence
                            or (kind in ("order", "mixed") and s.startswith(("Order ORD", "It has a high")))
                            or (kind == "system" and is_system_sentence(s))
                            for s in sents)

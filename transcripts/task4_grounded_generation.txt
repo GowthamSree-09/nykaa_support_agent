@@ -1,4 +1,4 @@
-﻿MOCK_LLM grounded generation | threshold = 0.44
+MOCK_LLM grounded generation | threshold = 0.44
 
 Q: How many days do I have to return a lipstick?
    top1=0.8275 grounded=True sources=['return_window']
@@ -6,7 +6,7 @@ Q: How many days do I have to return a lipstick?
 
 Q: When will my cash on delivery refund reach my bank account?
    top1=0.7106 grounded=True sources=['cod_refund']
-   A: Refunds for cash on delivery orders are paid to the customer's bank account or as store credit.
+   A: Refunds for cash on delivery orders are paid to the customer's bank account or as store credit. A bank refund takes 5 to 7 working days after the returned item passes quality checks.
 
 Q: Can I cancel my order after it has been shipped?
    top1=0.7699 grounded=True sources=['order_cancellation']

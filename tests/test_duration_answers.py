@@ -13,7 +13,7 @@ import pytest
 from agents.service import handle_request
 from kb.documents import KB_DOCUMENTS
 from rag import store
-from rag.generate import _score_sentences, answer_question
+from rag.generate import CATEGORY_CLARIFICATION, _score_sentences, answer_question
 from rag.relevance import has_duration, is_duration_question
 from tests.snapshot_questions import SNAPSHOT_QUESTIONS
 
@@ -53,7 +53,10 @@ def test_hair_dryer_expectation_is_checked_against_the_written_policy():
     warranty = next(d["text"] for d in KB_DOCUMENTS if d["doc_id"] == "warranty_terms")
     assert "12 month" in warranty and "6 month" in warranty
     r = answer_question("Is there a warranty on my hair dryer?")
-    assert r["grounded"] and r["sources"] == ["warranty_terms"] and all(s in warranty for s in r["used"])
+    # Round 4: the policy does not say which category a hair dryer is, so the answer gives BOTH written rules
+    # and asks the customer to confirm (see tests/test_round4_defects.py); every other sentence is from the KB.
+    assert r["grounded"] and r["sources"] == ["warranty_terms"] and CATEGORY_CLARIFICATION in r["used"]
+    assert all(s in warranty for s in r["used"] if s != CATEGORY_CLARIFICATION)
     from eval.judge_eval import HELDOUT_SET, MockJudge
     assert any("12 month|6 month" in facts for _, facts, _, _ in HELDOUT_SET)
     # alternatives work: an answer with only the 6-month sentence satisfies "12 month|6 month"
@@ -68,7 +71,9 @@ def test_duration_detection():
     for q in ("How long will a refund take?", "How many days do I have to return it?", "How soon must I report it?",
               "How quickly do I get store credit?", "How many working days does delivery take?"):
         assert is_duration_question(q), q
-    for q in ("When will my refund arrive?", "What is the return policy?", "How do I return my shoes?",
+    # Round 4: "when will X reach/arrive/be credited" IS a duration question; "when can I cancel" still is not.
+    assert is_duration_question("When will my refund arrive?")
+    for q in ("When can I cancel my order?", "What is the return policy?", "How do I return my shoes?",
               "How much of my order can I pay with points?", "Can I cancel after it ships?"):
         assert not is_duration_question(q), q
     for s in ("A bank refund takes 5 to 7 working days after the check.", "Store credit is added within 24 hours.",
@@ -89,11 +94,25 @@ def test_duration_bonus_is_a_preference_not_a_filter():
 
 
 def test_other_duration_answers_improved_without_collateral_changes():
-    """Compared with the answers recorded BEFORE this fix: exactly two answers changed, both for the better."""
+    """Compared with the answers recorded BEFORE the duration fix: exactly two answers changed, both for the better.
+    (Round 4 later changed two more, checked separately in test_round4_answers_changed_only_as_intended.)"""
     before = json.load(open(os.path.join(HERE, "answer_snapshot_before_duration_fix.json"), encoding="utf-8"))
     changed = {q for q in SNAPSHOT_QUESTIONS if answer_question(q)["answer"] != before[q]}
-    assert changed == {COD_QUESTION, "How long are loyalty points valid?"}
+    assert changed == {COD_QUESTION, "How long are loyalty points valid?", *ROUND4_CHANGED}
     assert answer_question("How long are loyalty points valid?")["answer"] == "Points expire 12 months after they are earned."
+
+
+ROUND4_CHANGED = {"When will my cash on delivery refund reach my bank account?",
+                  "How long does delivery take to remote areas?"}
+
+
+def test_round4_answers_changed_only_as_intended():
+    """Round 4 fixes: of the 32 reviewed answers exactly the two documented known-bad ones changed."""
+    before = json.load(open(os.path.join(HERE, "answer_snapshot_before_round4.json"), encoding="utf-8"))
+    changed = {q for q in SNAPSHOT_QUESTIONS if answer_question(q)["answer"] != before[q]}
+    assert changed == ROUND4_CHANGED
+    assert answer_question("How long does delivery take to remote areas?")["answer"] ==         "Remote pin codes may need up to 10 working days."
+    assert "5 to 7 working days" in answer_question("When will my cash on delivery refund reach my bank account?")["answer"]
 
 
 @pytest.mark.parametrize("question", SNAPSHOT_QUESTIONS)

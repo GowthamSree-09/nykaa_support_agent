@@ -11,13 +11,16 @@ Steps for one question:
  5. sub-queries that nothing supports are reported in `unanswered` instead of being answered with
     an unrelated sentence. `sources` lists only the documents whose sentences were actually used.
 """
+import re
+
 import numpy as np
 
 from llm import mock_llm
 from llm.mock_llm import tokens
 from rag.chunking import split_sentences
-from rag.relevance import (find_product_phrase, has_duration, is_duration_question, is_order_only, is_who_question,
-                           names_a_role, normalize_products, resolve_reference, split_subqueries, topic_hint)
+from rag.relevance import (ambiguous_appliance_doc, categories_in, find_product_phrase, has_anchor, has_duration,
+                           is_duration_question, is_order_only, is_who_question, names_a_role, normalize_phrases,
+                           normalize_products, resolve_reference, split_subqueries, topic_hint)
 from rag.store import embed, search
 
 # Measured in rag/calibrate.py (see README and transcripts/task4_threshold_calibration.txt):
@@ -31,6 +34,8 @@ SUBQUERY_FLOOR = 0.32
 HINT_BOOST = 0.15  # added to sentences of the document a topic hint points to
 DURATION_BOOST = 0.12  # added to sentences that state a duration when the question asks "how long ..."
 FALLBACK = "I don't know based on our support knowledge base. Let me connect you to a human agent."
+CATEGORY_CLARIFICATION = ("The policy does not say whether this item counts as Electronics or Home appliances, "
+                          "so please confirm its category.")
 DEFAULT_STRATEGY = "sentence"  # chosen by the Task 5 evaluation (see README)
 
 
@@ -57,17 +62,53 @@ def _merge(chunks: list[dict], extra: list[dict]) -> list[dict]:
     return chunks + [c for c in extra if c["chunk_id"] not in seen]
 
 
+_VAGUE_PRONOUN_RE = re.compile(r"\b(?:it|they|them|that|this)\b", re.I)
+
+
+def _merge_vague_parts(subs: list[str]) -> list[str]:
+    """A part such as "how long will it take?" has no topic of its own: it continues the part before it.
+    Searched alone it matches any sentence with a duration (e.g. a return window), so join it to its neighbour."""
+    out: list[str] = []
+    for sub in subs:
+        if out and _VAGUE_PRONOUN_RE.search(sub) and not has_anchor(sub):
+            out[-1] = f"{out[-1]} and {sub}"
+        else:
+            out.append(sub)
+    return out
+
+
+def _ambiguous_appliance_answer(question: str, doc_id: str, strategy: str, k: int) -> dict:
+    """Both written category rules plus a request to confirm the category; never one guessed rule."""
+    chunks = search(normalize_phrases(question), strategy, 10, doc_id=doc_id)
+    sentences = [c["text"] for c in sorted(chunks, key=lambda c: c["chunk_id"])
+                 if categories_in(c["text"]) & {"Electronics", "Home"}]
+    top = chunks[0]["similarity"] if chunks else 0.0
+    if not sentences:
+        return {"answer": FALLBACK, "grounded": False, "top_similarity": top, "sources": [], "chunks": chunks,
+                "used": [], "unanswered": []}
+    used = sentences + [CATEGORY_CLARIFICATION]
+    return {"answer": " ".join(used), "grounded": True, "top_similarity": top, "sources": [doc_id],
+            "chunks": chunks, "used": used, "unanswered": []}
+
+
 def answer_question(question: str, strategy: str = DEFAULT_STRATEGY, k: int = 3,
                     threshold: float = SIMILARITY_THRESHOLD, floor: float = SUBQUERY_FLOOR) -> dict:
+    if doc_id := ambiguous_appliance_doc(question):
+        return _ambiguous_appliance_answer(question, doc_id, strategy, k)
+    question = normalize_phrases(question)  # "remote areas" -> the policy's "remote pin codes"
     antecedent = find_product_phrase(question)  # what a dangling "it" in a later part can point to
     whole_text = normalize_products(question)
-    whole = search(whole_text, strategy, k)
+    # A duration question looks two chunks deeper: the sentence that states the duration can rank just below
+    # general sentences of the same policy (measured for "When will the money for my COD return be credited?").
+    whole = search(whole_text, strategy, k + 2 if is_duration_question(question) else k)
     top = whole[0]["similarity"] if whole else 0.0
     if not (top >= threshold or (topic_hint(question) and top >= floor)):  # question-level decision
         return {"answer": FALLBACK, "grounded": False, "top_similarity": top, "sources": [], "chunks": whole,
                 "used": [], "unanswered": []}
 
     subs = split_subqueries(question)
+    if antecedent is None:  # with a product/category earlier in the question "it" is resolved below instead
+        subs = _merge_vague_parts(subs)
     if len(subs) > 1:  # an order-only part ("what is the status of order") belongs to the order lookup, not the KB
         subs = [s for s in subs if not is_order_only(s)] or subs
     parts, all_chunks, unanswered = [], list(whole), []

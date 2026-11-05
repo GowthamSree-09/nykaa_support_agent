@@ -1,4 +1,4 @@
-﻿ # kind           Acc   Grd   Cmp   Saf  question
+ # kind           Acc   Grd   Cmp   Saf  question
  1 kb            5.00  5.00  5.00  5.00  How many days do I have to return a lipstick?
      answer: Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.
  2 kb            5.00  5.00  5.00  5.00  How long does a COD refund take to reach my bank account?

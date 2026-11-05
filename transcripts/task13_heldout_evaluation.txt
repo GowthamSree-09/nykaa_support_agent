@@ -1,6 +1,6 @@
-﻿ # kind           Acc   Grd   Cmp   Saf  question
+ # kind           Acc   Grd   Cmp   Saf  question
  1 kb            5.00  5.00  5.00  5.00  Is there a warranty on my hair dryer?
-     answer: Physical damage and water damage are not covered by any warranty. Home appliances carry a 6 month warranty.
+     answer: Electronics carry a 12 month brand warranty that covers manufacturing defects only. Home appliances carry a 6 month warranty. The policy does not say 
  2 kb            5.00  5.00  5.00  5.00  Can I exchange my sandals for a different size?
      answer: Size exchange is available for apparel and footwear within 15 days of delivery.
  3 kb            5.00  5.00  5.00  5.00  How long will a refund take if I paid cash on delivery?

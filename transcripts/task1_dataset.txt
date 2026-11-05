@@ -1,4 +1,4 @@
-﻿seed=12  orders=60
+seed=12  orders=60
 Count per category: {'Home': 7, 'Beauty': 16, 'Footwear': 14, 'Apparel': 11, 'Electronics': 12}
 Count per status:   {'Delivered': 27, 'Shipped': 12, 'Returned': 6, 'Refunded': 6, 'Placed': 9}
 Delayed shipments: 20.0%

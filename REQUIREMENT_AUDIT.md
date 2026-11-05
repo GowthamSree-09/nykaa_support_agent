@@ -1,7 +1,7 @@
 # Requirement audit — Final_Capstone.pdf (16 tasks)
 
 Status values: PASS = implemented, tested, and demonstrated with a transcript. PARTIAL = works but with a stated gap.
-Run everything with `.\.venv\Scripts\python.exe` from the project folder. Tests: `-m pytest -q` (157 pass).
+Run everything with `.\.venv\Scripts\python.exe` from the project folder. Tests: `-m pytest -q` (177 pass).
 
 | # | Requirement (short) | Implementation | Test | Demo command → evidence | Status |
 |---|---|---|---|---|---|
@@ -33,5 +33,12 @@ Run everything with `.\.venv\Scripts\python.exe` from the project folder. Tests:
 
 ## Not verified / honest gaps
 * A grader's own machine has not been tested; a fresh-clone run (needs the one-time model download) is untested here.
-* The 10-question held-out evaluation first scored accuracy 4.20; after the COD duration fix (4.60) and correcting the hair-dryer expectation against the written KB (5.00) it is no longer an untuned check. Answers still wrong or weak, documented in the README and not fixed: "How long does delivery take to remote areas?" (misses the 10-working-day remote rule), "When will … refund reach …?" (general COD sentence), and the hair-dryer answer commits to the home-appliance reading without saying the category is unclear.
+* The 10-question held-out evaluation (first 4.20, now 5.00) is no longer an untuned check. The remote-area, COD-timing and hair-dryer gaps listed in earlier rounds are fixed in round 4 (see below).
 * The product glossary and the contact/escalation topic hints are hand-written lists; unknown products can still be rejected or sent to clarification.
+
+## Round 4 (final audit) — executed evidence
+* Full suite: 177 passed (`transcripts/pytest_results.txt`). Dataset, calibration, task-4 demo, task-5 P/R, demos, all three judge sets and the unseen probe were re-run on the final code; transcripts refreshed.
+* 14 unseen probe questions (written before the fixes): 12/14 before, 14/14 after (`transcripts/unseen_probe_initial.txt`, `transcripts/unseen_probe_after_fixes.txt`).
+* Closed gaps (earlier listed as not fixed): remote-area delivery, "When will … refund reach …?", hair-dryer/appliance ambiguity, unrelated sentence in multi-topic answers. Tests: `tests/test_round4_defects.py`.
+* Network: `demos.run_demos` network guard reports 0 blocked outbound connection attempts; telemetry env vars set in `llm/__init__.py`.
+* NOT VERIFIED: a clean-machine fresh clone (dependency install + one-time model download) was not run; only the existing venv was used. `requirements.txt` pins exact versions.

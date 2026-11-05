@@ -1,4 +1,4 @@
-﻿
+
 == fixed collection ==
   in_scope        0.6105  How many days do I have to return a lipstick?
   in_scope        0.7149  When will my cash on delivery refund reach my bank account?

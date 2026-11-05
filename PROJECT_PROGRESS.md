@@ -2,7 +2,7 @@
 
 Source of truth: `Final_Capstone.pdf`. Everything runs under `MOCK_LLM`, zero API keys, zero network.
 Env: Windows, PowerShell, Python 3.12 venv at `.venv`. Repo: https://github.com/GowthamSree-09/nykaa_support_agent
-Commands: `.\.venv\Scripts\python.exe -m pytest -q` (157 pass) · `-m demos.run_demos` · `-m eval.judge_eval [--stress|--heldout]` · `-m uvicorn api.main:app`
+Commands: `.\.venv\Scripts\python.exe -m pytest -q` (177 pass) · `-m demos.run_demos` · `-m eval.judge_eval [--stress|--heldout]` · `-m uvicorn api.main:app`
 
 ## Status
 All 16 tasks implemented and tested (see `REQUIREMENT_AUDIT.md`). Two improvement rounds are DONE locally and NOT committed/pushed (user decides when).
@@ -21,8 +21,11 @@ Relevance (embedding-scored sentences, category gate, same-document rule, true s
 - Hair dryer: KB never mentions hair dryers (only Electronics 12 month, Home appliances 6 month). The old "12 month" expectation came from a comment in dataset.py, so the EXPECTATION was corrected (`"12 month|6 month"`, judge supports "|" alternatives); code unchanged.
 - Still wrong (documented, not fixed): "How long does delivery take to remote areas?"; "When will ... refund reach ...?" returns the general sentence.
 
+## Round 4 — final audit (done)
+Fixed: remote-area wording, "when will ... reach", COD abbreviation, ambiguous appliances (both rules + confirm-category sentence), vague second part merged into previous part. 20 new tests (tests/test_round4_defects.py), unseen probe 12/14 -> 14/14 (eval/unseen_probe.py), 177 tests pass. Judge accepts the fixed category sentence as on-topic. Snapshot re-recorded (exactly the 2 known-bad answers changed).
+
 ## Results (actual)
-- Tests: 157 passed (36 original + 57 round 1 + 25 round 2 + 39 round 3).
+- Tests: 177 passed (36 original + 57 round 1 + 25 round 2 + 39 round 3 + 20 round 4).
 - 15 required queries: 5.00 / 5.00 / 5.00 / 5.00 (before all rounds 4.78 / 5.00 / 4.91 / 5.00).
 - Stress set (12): 5.00 x4 (before round 2: 4.42 / 4.67 / 4.50 / 5.00). Tuned on, so not proof of generality.
 - Held-out set (10): first 4.20 / 5.00 / 5.00 / 5.00; after COD fix 4.60; after correcting the hair-dryer expectation 5.00 x4. No longer untuned (its failures were fixed).
@@ -35,9 +38,9 @@ Relevance (embedding-scored sentences, category gate, same-document rule, true s
 - CrewAI ReAct: the observation arrives inside the latest ASSISTANT message followed by a user nudge.
 
 ## Known issues
-- "How long does delivery take to remote areas?" misses the 10-working-day remote-pin-code sentence; "When will ... refund reach ...?" returns the general COD sentence; hair-dryer answer picks the home-appliance reading without flagging the unclear category.
+- Appliance ambiguity list, glossary and phrase rewrites are hand-written.
 - Glossary and topic hints are hand-written; unknown products may still be rejected / clarified.
 - Names/addresses not masked (out of scope per brief). Memory is in-process only.
 
 ## Next step
-User reviews, then commits and pushes. Do NOT push without approval.
+Round 4 committed and pushed to main.

@@ -1,4 +1,4 @@
-﻿ # kind           Acc   Grd   Cmp   Saf  question
+ # kind           Acc   Grd   Cmp   Saf  question
  1 kb            5.00  5.00  5.00  5.00  My parcel is very late, how long should delivery take and who do I escalate to?
      answer: Metro cities receive orders within 2 to 4 working days of shipping. Other towns receive orders within 5 to 8 working days. Delayed shipments with a hi
  2 kb            5.00  5.00  5.00  5.00  Can I cancel a shipped order and how long does a refund take?

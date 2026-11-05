@@ -72,6 +72,21 @@ def normalize_products(text: str) -> str:
     return _WORD_RE.sub(swap, text)
 
 
+# Customers say "remote areas / villages"; the delivery policy says "remote pin codes". The embedding model
+# does not link them (measured: the remote sentence is not the top hit), so for retrieval only the phrase
+# is rewritten to the policy's own wording.
+_REMOTE_RE = re.compile(r"\bremote\s+(?:areas?|locations?|places?|regions?|villages?|towns?|pincodes?)\b"
+                        r"|\b(?:villages?|rural\s+areas?)\b", re.I)
+
+
+_COD_RE = re.compile(r"\bCOD\b")  # the abbreviation is unknown to the embedding model (measured: matches payment-failure text)
+
+
+def normalize_phrases(text: str) -> str:
+    """Rewrite customer wording to the policy's own wording, for retrieval only."""
+    return _COD_RE.sub("cash on delivery", _REMOTE_RE.sub("remote pin codes", text))
+
+
 def find_product_phrase(text: str) -> str | None:
     """First category word or product noun in the text, as typed (e.g. 'earphones', 'electronics')."""
     for w in _WORD_RE.findall(text):
@@ -139,12 +154,39 @@ DURATION_RE = re.compile(
     r"\s+(?:working\s+|business\s+)?(?:minutes?|hours?|days?|weeks?|months?)\b", re.I)
 
 
+# "When will my refund reach my bank account?" also asks for a duration. Only a "when will ..." followed by an
+# arrival verb counts: "When can I cancel?" is a rule question, not a duration, so it is deliberately excluded.
+WHEN_ARRIVES_RE = re.compile(
+    r"\bwhen\s+(?:will|would|should)\b.*\b(?:reach|arrive|credited|received|refunded|delivered|processed)\b", re.I)
+
+
 def is_duration_question(text: str) -> bool:
-    return bool(DURATION_QUESTION_RE.search(text))
+    return bool(DURATION_QUESTION_RE.search(text) or WHEN_ARRIVES_RE.search(text))
 
 
 def has_duration(sentence: str) -> bool:
     return bool(DURATION_RE.search(sentence))
+
+
+# ---- ambiguous appliances --------------------------------------------------------------------------------
+# The policy sets different terms for Electronics and for Home appliances but never says which one a hair dryer,
+# kettle or microwave is. Answering with one category would be a guess, so for these the answer states both
+# written rules and asks the customer to confirm the category.
+AMBIGUOUS_APPLIANCE_RE = re.compile(
+    r"\b(?:hair\s*dryer|mixer|grinder|blender|microwave|toaster|kettle|juicer|air\s*fryer|oven|"
+    r"vacuum\s+cleaner|water\s+heater|room\s+heater|heater|cooler|fan)s?\b", re.I)
+_EXPLICIT_CATEGORY_RE = re.compile(r"\b(?:electronics?|home|appliances?)\b", re.I)
+CATEGORY_DIFFERS_TOPICS = {  # knowledge-base document whose rule differs by category -> question wording
+    "warranty_terms": re.compile(r"\b(?:warranty|warranties|guarantee)\b", re.I),
+    "return_window": re.compile(r"\b(?:return\w*|exchange\w*)\b", re.I),
+}
+
+
+def ambiguous_appliance_doc(text: str) -> str | None:
+    """Doc id to answer from if the question names an appliance with no stated category, else None."""
+    if not AMBIGUOUS_APPLIANCE_RE.search(text) or _EXPLICIT_CATEGORY_RE.search(text):
+        return None
+    return next((doc for doc, rx in CATEGORY_DIFFERS_TOPICS.items() if rx.search(text)), None)
 
 
 # ---- order words -----------------------------------------------------------------------------------------

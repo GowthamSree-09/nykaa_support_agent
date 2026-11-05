@@ -1,4 +1,4 @@
-﻿
+
 ===== A. SINGLE-QUERY, 7 required queries (original method) | fixed collection (chunks deduped to parent documents) =====
 Q: How many days do I have to return a lipstick?
    relevant=['return_window']  retrieved_docs=['order_cancellation', 'payment_failure', 'return_window']  hits=['return_window']
