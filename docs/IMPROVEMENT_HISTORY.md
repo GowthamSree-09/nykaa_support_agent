@@ -83,3 +83,36 @@ Audit method: ran the 157-test suite (green), reproduced each known README limit
 * **Regression caught by the 15-query evaluation:** my first "vague pronoun" pattern treated the relative "that" in "Who handles a case **that** is older than 72 hours?" as a reference, so query 12 asked for clarification (accuracy/completeness 5.00 → 1.00, averages 4.73). The pattern now only counts it/they/them, a trailing "that/this", or "is that …". Permanent test: `test_relative_that_is_not_a_dangling_reference`.
 * **Junk sub-question hole:** with the 0.32 floor a junk part inside a valid question would have been answered; non-hinted sub-questions now need 0.44 and are reported as unanswered ("I could not find a policy answer for the rest of your question…").
 * **Found by the held-out set:** the order-only part of "What is the status of order ORD-1047 and who do I contact if it is late?" was searched in the policy KB and pulled in a cancellation sentence; order-only parts are now skipped (`test_order_part_of_a_mixed_question_does_not_search_the_policy_kb`).
+
+
+## Evaluation history and held-out findings (moved verbatim from the former README Part 3)
+
+These tables and notes record how the evaluation numbers changed across the improvement rounds. Statements such as "still wrong, not fixed" describe the state at the time they were written; the remote-area, COD-timing and hair-dryer gaps were closed later in round 4 (see the Round 4 section above).
+
+| Metric (average of 15) | Before improvements (`eval/results_before_improvements.json`) | After |
+|---|---|---|
+| Accuracy | 4.78 | **5.00** |
+| Grounding | 5.00 | **5.00** |
+| Completeness | 4.91 | **5.00** |
+| Safety | 5.00 | **5.00** |
+
+Before: query 3 (delivery SLA) scored accuracy 3.00 because an unrelated size-exchange sentence was appended; query 13 (order status) scored 3.67/3.67 because a policy sentence was appended. Both are fixed by the relevance and routing changes. All 15 per-query rows (all four scores each) are in the transcript and `eval/results.json`.
+
+**Read the 5.00s with care:** the judge is rule-based and the 15 required queries are mostly single-topic, so they are easy. Grounding is high largely *by construction* (the mock copies sentences from the retrieved context). Three sets, all with the same judge:
+
+| Set | Accuracy | Grounding | Completeness | Safety |
+|---|---|---|---|---|
+| 15 required queries — before the improvement rounds | 4.78 | 5.00 | 4.91 | 5.00 |
+| 15 required queries — after round 1 | 5.00 | 5.00 | 5.00 | 5.00 |
+| 15 required queries — after round 2 (this round; one regression found and fixed on the way) | **5.00** | **5.00** | **5.00** | **5.00** |
+| 12-query **stress set** — before round 2 (`eval/stress_results_before_defect_fix.json`) | 4.42 | 4.67 | 4.50 | 5.00 |
+| 12-query stress set — after round 2 (`transcripts/task13_stress_evaluation.txt`) | **5.00** | **5.00** | **5.00** | **5.00** |
+| 10-query held-out set, first run after round 2 (`eval/heldout_results_before_duration_fix.json`) | 4.20 | 5.00 | 5.00 | 5.00 |
+| 10-query held-out set, after the COD fix only (hair-dryer expectation still "12 month") | 4.60 | 5.00 | 5.00 | 5.00 |
+| 10-query held-out set, after the COD fix **and** the corrected hair-dryer expectation (`transcripts/task13_heldout_evaluation.txt`) | **5.00** | **5.00** | **5.00** | **5.00** |
+
+The stress set is the set the two defects were diagnosed on, so its 5.00s mean "those defects are fixed", **not** "the system is perfect". The held-out set was written after the fixes and first scored 4.20; it found problems, and the last two rows are the result of fixing them, so **it is no longer an untuned check** (a fresh set would be needed to measure generalisation again). The two failures it found:
+* **COD refund time — fixed (code).** "How long will a refund take if I paid cash on delivery?" returned the right document but the wrong sentence. Root cause: the sentence picker ranks by embedding similarity plus shared words, so the generic sentence "Refunds for cash on delivery orders are paid to the customer's bank account or as store credit." (0.793, 4 shared words) beat "A bank refund takes 5 to 7 working days after the returned item passes quality checks." (0.687, 2 shared words), and nothing told it that "how long" asks for a duration. Fix: duration questions (`how long`, `how soon`, `how quickly`, `how many days/hours/weeks/months`) give a +0.12 bonus to sentences that state a duration (`rag/relevance.py`, `rag/generate.py`). It is a *bonus*, not a filter. The answer is now the 5-to-7-working-days sentence (plus the generic one), copied from the policy.
+* **Hair dryer warranty — expectation corrected, code untouched.** I checked the written knowledge base: it never mentions hair dryers. It only says "Electronics carry a 12 month brand warranty…" and "Home appliances carry a 6 month warranty." My original expectation ("12 month") came from a comment in `dataset.py`, not from the policy, so it was an unsupported assumption. The system's answer ("Physical damage and water damage are not covered by any warranty. Home appliances carry a 6 month warranty.") is copied from the policy and is a defensible reading, so the code was not changed. The expectation now accepts either supported statement (`"12 month|6 month"`), and a test checks the alternatives are not a free pass. Honest caveat: the answer commits to one reading and does not tell the customer the product category is unclear.
+
+**Collateral check for the COD fix** (`tests/test_duration_answers.py`): 32 refund / return / delivery / warranty / exchange / escalation questions (`tests/snapshot_questions.py`) were answered before and after. **Exactly two answers changed, both improvements:** the COD question, and "How long are loyalty points valid?" (before it led with the irrelevant "Each 1 loyalty point is worth 1 INR at checkout."; now just "Points expire 12 months after they are earned."). The other 30 are identical, and the reviewed answers are frozen as a test snapshot (`tests/answer_snapshot.json`; pre-fix answers in `tests/answer_snapshot_before_duration_fix.json`). The snapshot also records one answer that is still **wrong**, not fixed: "How long does delivery take to remote areas?" returns the other-towns and metro sentences and misses "Remote pin codes may need up to 10 working days."; the snapshot guards against *unintended* changes, it does not certify every answer.
