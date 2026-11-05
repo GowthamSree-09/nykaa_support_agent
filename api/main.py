@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from agents import service
 from agents.memory import reset_session
-from api.logging_utils import log_request, new_trace_id
+from api.logging_utils import begin_request, end_request, log_request, new_trace_id
 from kb.documents import KB_DOCUMENTS  # noqa: F401
 from rag import store
 from rag.chunking import split_sentences
@@ -23,6 +23,27 @@ app = FastAPI(title="Nykaa Support Agent (MOCK_LLM)")
 @app.on_event("startup")
 def _startup():
     store.index_documents()  # idempotent upsert of the knowledge base
+
+
+@app.middleware("http")
+async def log_unlogged_requests(request: Request, call_next):
+    """Task 12: every HTTP request gets exactly one JSON-Lines entry.
+
+    Endpoints that already log (/ask, /add-document, the 500 handler) mark the request as logged; this
+    middleware writes the entry for everything else (GET /health, DELETE /sessions/{id}, Pydantic
+    validation errors, unknown paths). The request body is never logged here, so nothing sensitive is written.
+    """
+    started = time.perf_counter()
+    state, token = begin_request()
+    try:
+        response = await call_next(request)
+    finally:
+        end_request(token)
+    if not state["logged"]:
+        route = request.scope.get("route")
+        log_request(new_trace_id(), getattr(route, "path", request.url.path), "", started,
+                    method=request.method, status=response.status_code)
+    return response
 
 
 class AskRequest(BaseModel):
@@ -55,6 +76,7 @@ class AddDocumentResponse(BaseModel):
     trace_id: str
     doc_id: str
     chunks_indexed: dict[str, int]
+    pii_masked: list[str] = []
 
 
 def _to_response(trace_id: str, result: dict) -> AskResponse:

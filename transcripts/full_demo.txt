@@ -69,8 +69,8 @@ Groundedness refusal in pipeline: guardrail=groundedness answer=I don't know bas
 ==============================================================================
 TASK 11 + 12 - FastAPI (/ask, /add-document, WebSocket) and JSON-Lines log
 ==============================================================================
-POST /ask -> 200 {"trace_id": "1ee8cbd845eb426187a8a8f5e6309544", "answer": "Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.", "grounded": true, "sources": ["return_window"], "order_id": null, "order_status": null, "escalation_score
-POST /add-document -> 200 {'trace_id': '1616de5491e84d59aa9121c171ed113f', 'doc_id': 'demo_gift', 'chunks_indexed': {'fixed': 1, 'sentence': 2}}
+POST /ask -> 200 {"trace_id": "67f01f61d2db48a7869093181aa507a8", "answer": "Beauty products can be returned within 7 days of delivery, and only if the seal is unbroken.", "grounded": true, "sources": ["return_window"], "order_id": null, "order_status": null, "escalation_score
+POST /add-document -> 200 {'trace_id': '65eac9931c1b428abe1b0a88967f0ac1', 'doc_id': 'demo_gift', 'chunks_indexed': {'fixed': 1, 'sentence': 2}, 'pii_masked': []}
 POST /ask (empty question) -> 422 (Pydantic validation)
 WS turn 1 -> Order ORD-1023 is currently Shipped (order value 1188 INR). It has a high escala
 WS turn 2 (memory) -> order_id = ORD-1023
@@ -78,13 +78,15 @@ client disconnected mid-conversation; server still alive: {'status': 'ok', 'mock
 WS other client -> Electronics carry a 12 month brand warranty that covers manufacturing defects on
 
 log file lines (JSON Lines):
-  {"timestamp": "2026-11-05T08:52:29.150238+00:00", "trace_id": "1ee8cbd845eb426187a8a8f5e6309544", "endpoint": "/ask", "request_text": "My phone is [PHONE_MASKED]. Can I return a lipstick?", "duration_ms": 267.2, "status": 200, "session_id": "api1", "pii_masked": ["phone"], "guardrail": null, "grounded": true, "answer_chars": 92}
-  {"timestamp": "2026-11-05T08:52:29.550508+00:00", "trace_id": "1616de5491e84d59aa9121c171ed113f", "endpoint": "/add-document", "request_text": "Gift wrapping costs 50 INR per order. It is available for all categories.", "duration_ms": 379.17, "status": 200, "doc_id": "demo_gift"}
-  {"timestamp": "2026-11-05T08:52:30.095629+00:00", "trace_id": "1069bdf65f2045ac826e104197741084", "endpoint": "/ws/chat", "request_text": "Where is my order ORD-1023?", "duration_ms": 205.42, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 148}
-  {"timestamp": "2026-11-05T08:52:30.333401+00:00", "trace_id": "7ca8c6ecf0794ad6848bc7d751763ddf", "endpoint": "/ws/chat", "request_text": "Can I cancel it?", "duration_ms": 233.72, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 335}
-  {"timestamp": "2026-11-05T08:52:30.335404+00:00", "trace_id": "c33dcc38d6ad449ea32d9cf3a0f80268", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.03, "status": "client_disconnected", "session_id": "wsA"}
-  {"timestamp": "2026-11-05T08:52:30.627614+00:00", "trace_id": "cf49e8a801244c2d988e8a9d2b4ee398", "endpoint": "/ws/chat", "request_text": "What warranty do electronics have?", "duration_ms": 287.16, "status": 200, "session_id": "wsB", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 83}
-  {"timestamp": "2026-11-05T08:52:30.629615+00:00", "trace_id": "fce6685567f24a2a8d34fe28961e3bab", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.03, "status": "client_disconnected", "session_id": "wsB"}
+  {"timestamp": "2026-11-05T10:20:34.684449+00:00", "trace_id": "67f01f61d2db48a7869093181aa507a8", "endpoint": "/ask", "request_text": "My phone is [PHONE_MASKED]. Can I return a lipstick?", "duration_ms": 144.6, "status": 200, "session_id": "api1", "pii_masked": ["phone"], "guardrail": null, "grounded": true, "answer_chars": 92}
+  {"timestamp": "2026-11-05T10:20:35.112279+00:00", "trace_id": "65eac9931c1b428abe1b0a88967f0ac1", "endpoint": "/add-document", "request_text": "Gift wrapping costs 50 INR per order. It is available for all categories.", "duration_ms": 428.87, "status": 200, "doc_id": "demo_gift"}
+  {"timestamp": "2026-11-05T10:20:35.619157+00:00", "trace_id": "b40487ec12fc4ccbaf2b4ab4049313cd", "endpoint": "/ask", "request_text": "", "duration_ms": 0.72, "method": "POST", "status": 422}
+  {"timestamp": "2026-11-05T10:20:35.765487+00:00", "trace_id": "4699b49f701a47c9a9e286d46fa34dbd", "endpoint": "/ws/chat", "request_text": "Where is my order ORD-1023?", "duration_ms": 143.44, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 148}
+  {"timestamp": "2026-11-05T10:20:35.992246+00:00", "trace_id": "10594e9087d04e1dbedf41a50a456763", "endpoint": "/ws/chat", "request_text": "Can I cancel it?", "duration_ms": 226.86, "status": 200, "session_id": "wsA", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 335}
+  {"timestamp": "2026-11-05T10:20:35.994249+00:00", "trace_id": "06581a047faa4ac785dd5bbb18f82508", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.01, "status": "client_disconnected", "session_id": "wsA"}
+  {"timestamp": "2026-11-05T10:20:35.994249+00:00", "trace_id": "2143631083814f4fbd49898036b767e4", "endpoint": "/health", "request_text": "", "duration_ms": 0.54, "method": "GET", "status": 200}
+  {"timestamp": "2026-11-05T10:20:36.142270+00:00", "trace_id": "63ecc75376604616a4108f2972eaa31e", "endpoint": "/ws/chat", "request_text": "What warranty do electronics have?", "duration_ms": 143.42, "status": 200, "session_id": "wsB", "pii_masked": [], "guardrail": null, "grounded": true, "answer_chars": 83}
+  {"timestamp": "2026-11-05T10:20:36.142270+00:00", "trace_id": "b6b33e4fdedf400ba560e440b3e908e5", "endpoint": "/ws/chat", "request_text": "", "duration_ms": 0.01, "status": "client_disconnected", "session_id": "wsB"}
 raw phone '9876543210' on disk? False
 
 ==============================================================================
@@ -109,7 +111,7 @@ governance audit events recorded this run: ['access_denied', 'budget_rejected', 
 ==============================================================================
 TASK 16 - response cache
 ==============================================================================
-call 1: cache_hit=False  LLM calls so far=1  time=50.31 ms
+call 1: cache_hit=False  LLM calls so far=1  time=32.55 ms
 call 2: cache_hit=True  LLM calls so far=1  time=0.01 ms  (same answer: True)
 cache stats: hits=1 misses=1
 

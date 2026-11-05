@@ -8,6 +8,7 @@ import os
 import threading
 import time
 import uuid
+from contextvars import ContextVar
 from datetime import datetime, timezone
 
 from agents.guardrails import mask_pii
@@ -15,6 +16,19 @@ from agents.guardrails import mask_pii
 LOG_PATH = os.environ.get("REQUEST_LOG", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                                       "logs", "requests.jsonl"))
 _lock = threading.Lock()
+# One mutable marker per HTTP request (set by the middleware in api/main.py). log_request flips it, so the
+# middleware can tell whether an endpoint already wrote this request's log line and avoid a duplicate.
+_request_state: ContextVar[dict | None] = ContextVar("request_log_state", default=None)
+
+
+def begin_request():
+    """Start tracking one HTTP request; returns (state, token) - pass the token to end_request()."""
+    state = {"logged": False}
+    return state, _request_state.set(state)
+
+
+def end_request(token) -> None:
+    _request_state.reset(token)
 
 
 def new_trace_id() -> str:
@@ -22,6 +36,9 @@ def new_trace_id() -> str:
 
 
 def log_request(trace_id: str, endpoint: str, text: str, started: float, **fields) -> dict:
+    state = _request_state.get()
+    if state is not None:
+        state["logged"] = True
     safe_text, _ = mask_pii(text)
     entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),

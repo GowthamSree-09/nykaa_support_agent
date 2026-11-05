@@ -2,7 +2,7 @@
 
 Source of truth: `Final_Capstone.pdf`. Everything runs under `MOCK_LLM`, zero API keys, zero network.
 Env: Windows, PowerShell, Python 3.12 venv at `.venv`. Repo: https://github.com/GowthamSree-09/nykaa_support_agent
-Commands: `.\.venv\Scripts\python.exe -m pytest -q` (177 pass) · `-m demos.run_demos` · `-m eval.judge_eval [--stress|--heldout]` · `-m uvicorn api.main:app`
+Commands: `.\.venv\Scripts\python.exe -m pytest -q` (189 pass) · `-m demos.run_demos` · `-m eval.judge_eval [--stress|--heldout]` · `-m uvicorn api.main:app`
 
 ## Status
 All 16 tasks implemented and tested (see `REQUIREMENT_AUDIT.md`). Two improvement rounds are DONE locally and NOT committed/pushed (user decides when).
@@ -25,7 +25,8 @@ Relevance (embedding-scored sentences, category gate, same-document rule, true s
 Fixed: remote-area wording, "when will ... reach", COD abbreviation, ambiguous appliances (both rules + confirm-category sentence), vague second part merged into previous part. 20 new tests (tests/test_round4_defects.py), unseen probe 12/14 -> 14/14 (eval/unseen_probe.py), 177 tests pass. Judge accepts the fixed category sentence as on-topic. Snapshot re-recorded (exactly the 2 known-bad answers changed).
 
 ## Results (actual)
-- Tests: 177 passed (36 original + 57 round 1 + 25 round 2 + 39 round 3 + 20 round 4).
+- Tests: 189 passed (36 original + 57 round 1 + 25 round 2 + 39 round 3 + 20 round 4 + 12 round 5).
+- Round 5: Task 12 gaps fixed (/health, DELETE /sessions, validation errors now logged once via middleware) and /add-document masks phone/card before indexing; see REQUIREMENT_AUDIT.md.
 - 15 required queries: 5.00 / 5.00 / 5.00 / 5.00 (before all rounds 4.78 / 5.00 / 4.91 / 5.00).
 - Stress set (12): 5.00 x4 (before round 2: 4.42 / 4.67 / 4.50 / 5.00). Tuned on, so not proof of generality.
 - Held-out set (10): first 4.20 / 5.00 / 5.00 / 5.00; after COD fix 4.60; after correcting the hair-dryer expectation 5.00 x4. No longer untuned (its failures were fixed).

@@ -88,7 +88,10 @@ def handle_request(question: str, session_id: str = "default", review: bool = Tr
 
 
 def add_document(doc_id: str, title: str, text: str) -> dict:
+    # Input-side guardrail for documents too: the index is persistent and its sentences are copied verbatim
+    # into customer answers, so a phone number or card last-4 must be masked BEFORE it is stored.
+    text, pii_found = mask_pii(text)
     counts = store.index_documents([{"doc_id": doc_id, "title": title, "text": text}])
     CACHE.clear()  # cached answers may be stale after the knowledge base changes
     audit("cache_cleared", reason="document_added", doc_id=doc_id)
-    return {"doc_id": doc_id, "chunks_indexed": counts}
+    return {"doc_id": doc_id, "chunks_indexed": counts, "pii_masked": pii_found}
